@@ -30,11 +30,10 @@ type config struct {
 	vars        pongo.Context
 }
 
-/* TODO
 type post struct {
 	title string
+	file string
 }
-*/
 
 /* TODO
 type site struct {
@@ -51,9 +50,15 @@ func str(s interface{}) string {
 	return ""
 }
 
-func (cfg *config) to(from string) string {
+func (cfg *config) toPage(from string) string {
 	return filepath.Join(cfg.destination, from[len(cfg.source):])
 }
+
+func (cfg *config) toPost(from string) string {
+	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
+	return filepath.Join(cfg.destination, from[len(base):])
+}
+
 func (cfg *config) convertFile(src, dst string) error {
 	var err error
 	ext := filepath.Ext(src)
@@ -119,6 +124,19 @@ func (cfg *config) convertFile(src, dst string) error {
 		fmt.Println(dst)
 
 		return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
+	}
+	_, err = copyFile(src, dst)
+	return err
+}
+
+func (cfg *config) createPost(src, dst string) error {
+	var err error
+	ext := filepath.Ext(src)
+	switch ext {
+	case ".yml", ".go", ".exe":
+		return nil
+	case ".html", ".md", ".mkd":
+		return cfg.convertFile(src, dst)
 	}
 	_, err = copyFile(src, dst)
 	return err
@@ -203,7 +221,7 @@ func main() {
 			if from == cfg.destination || dot == '.' || dot == '_' {
 				return filepath.SkipDir
 			}
-			err = os.MkdirAll(cfg.to(from), 0755)
+			err = os.MkdirAll(cfg.toPage(from), 0755)
 		} else {
 			pages = append(pages, from)
 		}
@@ -213,10 +231,44 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var posts []post
+	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
+	err = filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return err
+		}
+
+		from := filepath.ToSlash(path)
+		println(cfg.toPost(from))
+		/*
+		if info.IsDir() {
+			dot := filepath.Base(path)[0]
+			if from == cfg.destination || dot == '.' || dot == '_' {
+				return filepath.SkipDir
+			}
+			err = os.MkdirAll(cfg.toPage(from), 0755)
+		} else {
+			pages = append(pages, from)
+		}
+		*/
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	cfg.vars["site"].(pongo.Context)["pages"] = pages
+	cfg.vars["site"].(pongo.Context)["posts"] = posts
+
 	for _, from := range pages {
-		to := cfg.to(from)
+		to := cfg.toPage(from)
 		err = cfg.convertFile(from, to)
+		fmt.Println(from, "=>", to)
+	}
+
+	for _, from := range posts {
+		to := cfg.toPost(from.file)
+		err = cfg.convertFile(from.file, to)
 		fmt.Println(from, "=>", to)
 	}
 }
