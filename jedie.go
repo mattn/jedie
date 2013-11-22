@@ -94,7 +94,7 @@ func (cfg *config) convertFile(src, dst string) error {
 	case ".yml", ".go", ".exe":
 		return nil
 	case ".html", ".md", ".mkd":
-		dst = dst[0:len(dst)-len(ext)] + ".html"
+		dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
 		fi, err := os.Stat(src)
 		if err != nil {
 			return err
