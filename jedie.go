@@ -11,8 +11,8 @@ import (
 	"launchpad.net/goyaml"
 	"log"
 	"net/url"
+	"net/http"
 	"os"
-	//"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -110,7 +110,8 @@ func (cfg *config) convertFile(src, dst string) error {
 			content, err := parseFile(src, vars)
 			if err != nil {
 				// TODO Really?
-				break
+				//break
+				return err
 			}
 			vars["post"] = pongo.Context{
 				"date": fi.ModTime(),
@@ -150,7 +151,7 @@ func (cfg *config) convertFile(src, dst string) error {
 			} else {
 				vars["content"] = content
 			}
-			if vars["layout"] == "" {
+			if str(vars["layout"]) == "" {
 				break
 			}
 			src = filepath.ToSlash(filepath.Join(cfg.source, "_layouts", str(vars["layout"])+".html"))
@@ -192,52 +193,7 @@ func copyFile(src, dst string) (int64, error) {
 	return io.Copy(df, sf)
 }
 
-func main() {
-	flag.Parse()
-
-	b, err := ioutil.ReadFile("_config.yml")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var globalVariables pongo.Context
-	err = goyaml.Unmarshal(b, &globalVariables)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var cfg config
-	cfg.vars = globalVariables
-	cfg.baseUrl = str(globalVariables["baseUrl"])
-	cfg.source = str(globalVariables["source"])
-	cfg.destination = str(globalVariables["destination"])
-
-	if cfg.source == "" {
-		cfg.source = ""
-	}
-	if cfg.destination == "" {
-		cfg.destination = "_site"
-	}
-	cfg.source, err = filepath.Abs(cfg.source)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.destination, err = filepath.Abs(cfg.destination)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if _, err := os.Stat(cfg.destination); err != nil {
-		err = os.MkdirAll(cfg.destination, 0755)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	cfg.source = filepath.ToSlash(cfg.source)
-	cfg.destination = filepath.ToSlash(cfg.destination)
-	cfg.vars["site"] = pongo.Context{}
-
+func pongoSetup() {
 	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		str, is_str := value.(string)
 		if !is_str {
@@ -254,6 +210,7 @@ func main() {
 			return nil, errors.New(fmt.Sprintf("Format must be of type string, not %T ('%v')", args[0], args[0]))
 		}
 
+		var err error
 		date, ok := value.(time.Time)
 		if !ok {
 			datestr, ok := value.(string)
@@ -330,6 +287,55 @@ func main() {
 		}
 		panic("unreachable")
 	}
+}
+
+func main() {
+	flag.Parse()
+
+	b, err := ioutil.ReadFile("_config.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var globalVariables pongo.Context
+	err = goyaml.Unmarshal(b, &globalVariables)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var cfg config
+	cfg.vars = globalVariables
+	cfg.baseUrl = str(globalVariables["baseUrl"])
+	cfg.source = str(globalVariables["source"])
+	cfg.destination = str(globalVariables["destination"])
+
+	if cfg.source == "" {
+		cfg.source = ""
+	}
+	if cfg.destination == "" {
+		cfg.destination = "_site"
+	}
+	cfg.source, err = filepath.Abs(cfg.source)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.destination, err = filepath.Abs(cfg.destination)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := os.Stat(cfg.destination); err != nil {
+		err = os.MkdirAll(cfg.destination, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	cfg.source = filepath.ToSlash(cfg.source)
+	cfg.destination = filepath.ToSlash(cfg.destination)
+	cfg.vars["site"] = pongo.Context{}
+
+	pongoSetup()
 
 	var pageFiles []string
 	pages := []pongo.Context{}
@@ -428,5 +434,9 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if flag.NArg() != 1 && flag.Arg(0) == "server" {
+		http.ListenAndServe(":4000", http.FileServer(http.Dir("_site")))
 	}
 }
