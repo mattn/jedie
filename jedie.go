@@ -110,9 +110,13 @@ func (cfg *config) convertFile(src, dst string) error {
 			for k, v := range cfg.vars {
 				vars[k] = v
 			}
-			content, err := parseFile(src, vars)
+			pageVars := pongo.Context{}
+			content, err := parseFile(src, pageVars)
 			if err != nil {
 				return err
+			}
+			for k, v := range pageVars {
+				vars[k] = v
 			}
 			vars["post"] = pongo.Context{
 				"date": fi.ModTime(),
@@ -137,7 +141,6 @@ func (cfg *config) convertFile(src, dst string) error {
 					if err == nil && output != nil {
 						content = *output
 					} else {
-					println(err.Error())
 						return err
 					}
 				} else {
@@ -179,7 +182,48 @@ func (cfg *config) createPost(src, dst string) error {
 	return err
 }
 
-func (cfg *config) build() error {
+func (cfg *config) New(p string) error {
+	content := "name: Your New Jedie Site\n"
+	err := ioutil.WriteFile(filepath.Join(p, "_config.yml"), []byte(content), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "_layouts"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "default.html"), []byte(layoutDefault), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "post.html"), []byte(layoutPost), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "css"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "css", "site.css"), []byte(cssSite), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "_posts"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_posts", time.Now().Format("2006-01-02-welcome-to-jedie") + ".md"), []byte(postsBlog), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "index.html"), []byte(topPage), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cfg *config) Build() error {
 	pongoSetup()
 
 	var err error
@@ -280,7 +324,7 @@ func (cfg *config) build() error {
 
 	for _, from := range postFiles {
 		ext := filepath.Ext(from)
-		to := filepath.Join(cfg.destination, from[len(base):])
+		to := filepath.ToSlash(filepath.Join(cfg.destination, from[len(base):]))
 		to = to[0:len(to)-len(ext)] + ".html"
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
@@ -289,6 +333,14 @@ func (cfg *config) build() error {
 		}
 	}
 	return nil
+}
+
+func (cfg *config) Serve() error {
+	err := cfg.Build()
+	if err != nil {
+		return err
+	}
+	return http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.destination)))
 }
 
 func parseFile(file string, vars pongo.Context) (string, error) {
@@ -301,14 +353,16 @@ func parseFile(file string, vars pongo.Context) (string, error) {
 	if len(lines) > 2 && lines[0] == "---" {
 		var line string
 		var n int
+		var yaml string
 		for n, line = range lines[1:] {
 			if line == "---" {
 				break
 			}
-			token := strings.SplitN(line, ":", 2)
-			if len(token) == 2 && token[0] != "" {
-				vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
-			}
+			yaml += line + "\n"
+		}
+		err = goyaml.Unmarshal(b, &vars)
+		if err != nil {
+			return "", err
 		}
 		content = strings.Join(lines[n+2:], "\n")
 	}
@@ -448,7 +502,7 @@ func pongoSetup() {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Println(string(`
+		fmt.Println(`
   NAME:
 
     jedie
@@ -459,27 +513,124 @@ func main() {
 
   COMMANDS:
 
+    new                  Creates a new jedie site scaffold in PATH
     build                Build your site
-    server               Serve your site locally
-`[1:]))
+    serve                Serve your site locally
+`[1:])
 	}
 	flag.Parse()
-	if flag.NArg() != 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
-	arg := flag.Arg(0)
 
 	var cfg config
-	switch arg {
-	case "build":
-		cfg.load("_config.yml")
-		cfg.build()
-	case "server":
-		cfg.load("_config.yml")
-		cfg.build()
-		http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.destination)))
+	var err error
+	switch {
+	case flag.Arg(0) == "new":
+		p := flag.Arg(1)
+		if p == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+		err = cfg.New(p)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case flag.Arg(0) == "build":
+		err = cfg.load("_config.yml")
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cfg.Build()
+		if err != nil {
+			log.Fatal(err)
+		}
+	case flag.Arg(0) == "serve":
+		err = cfg.load("_config.yml")
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cfg.Serve()
+		if err != nil {
+			log.Fatal(err)
+		}
 	default:
 		flag.Usage()
 	}
 }
+
+var layoutDefault = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="/css/site.css" media="all">
+    <title>Jedie is Awesome!</title>
+</head>
+<body>
+{{ content }}
+</body>
+</html>
+`[1:]
+
+var layoutPost = `
+---
+layout: default
+---
+<h2>{{ page.title }}</h2>
+<p class="meta">{{ page.date | date_to_string }}</p>
+
+<div class="post">
+{{ content }}
+</div>
+`[1:]
+
+var cssSite = `
+body {
+	font-family: Sans;
+}
+
+h1 {
+	color: darkgreen;
+}
+`[1:]
+
+var postsBlog = (`
+---
+layout: post
+title:  "Welcome to Jedie!"
+date:   2013-11-22 21:42:47
+---
+
+You'll find this post in your `+"`_posts`"+` directory - edit this post and re-build (or run with the `+"`-w`"+` switch) to see your changes!
+To add new posts, simply add a file in the `+"`_posts`"+` directory that follows the convention: YYYY-MM-DD-name-of-post.ext.
+
+Jekyll also offers powerful support for code snippets:
+
+`+"```"+`go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("こんにちわ世界")
+}
+`+"```"+`
+
+Check out the [Jedie][jedie-gh] for more info.
+
+[jedie-gh]: https://github.com/mattn/jedie
+`)[1:]
+
+var topPage = `
+---
+layout: default
+title: Your New Jedie Site
+---
+
+<div id="home">
+  <h1>Blog Posts</h1>
+  <ul class="posts">
+    {% for post in site.posts %}
+      <li><span>{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+`[1:]
