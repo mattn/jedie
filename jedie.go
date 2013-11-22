@@ -12,10 +12,11 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"path"
+	//"path"
 	"path/filepath"
+	"reflect"
 	"strings"
-	//"time"
+	"time"
 )
 
 var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
@@ -40,7 +41,7 @@ func str(s interface{}) string {
 }
 
 func (cfg *config) toUrl(from string) string {
-	return cfg.baseUrl + path.Clean(from[len(cfg.source):])
+	return cfg.baseUrl + filepath.ToSlash(from[len(cfg.source):])
 }
 
 func (cfg *config) toPage(from string) string {
@@ -113,8 +114,14 @@ func (cfg *config) convertFile(src, dst string) error {
 			vars["post"] = pongo.Context{
 				"date": fi.ModTime(),
 				"url": cfg.toUrl(src),
-				"title": vars["title"],
+				"title": str(vars["title"]),
 			}
+			vars["page"] = pongo.Context{
+				"date": fi.ModTime(),
+				"url": cfg.toUrl(src),
+				"title": str(vars["title"]),
+			}
+			//vars["page"] = vars["post"]
 			// FIXME Why pongo returns pointer of string?
 			if content != "" {
 				ps := new(string)
@@ -237,8 +244,54 @@ func main() {
 		}
 		return url.QueryEscape(str), nil
 	}
+	pongo.Filters["date"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		if len(args) != 1 {
+			return nil, errors.New("Please provide a count of limit")
+		}
+		format, is_string := args[0].(string)
+		if !is_string {
+			return nil, errors.New(fmt.Sprintf("Format must be of type string, not %T ('%v')", args[0], args[0]))
+		}
 
-	var pages []string
+		date, ok := value.(time.Time)
+		if !ok {
+			datestr, ok := value.(string)
+			if !ok {
+				return nil, errors.New(fmt.Sprintf("Date must be of type time.Time or string, not %T ('%v')", value, value))
+			}
+			date, err = time.Parse(format, datestr)
+			if err != nil {
+				return nil, err
+			}
+		}
+		format = strings.Replace(format, "%Y", "2006", -1)
+		format = strings.Replace(format, "%m", "01", -1)
+		format = strings.Replace(format, "%d", "02", -1)
+		return date.Format(format), nil
+	}
+	pongo.Filters["limit"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		if len(args) != 1 {
+			return nil, errors.New("Please provide a count of limit")
+		}
+		limit, is_int := args[0].(int)
+		if !is_int {
+			return nil, errors.New(fmt.Sprintf("Limit must be of type int, not %T ('%v')", args[0], args[0]))
+		}
+
+		rv := reflect.ValueOf(value)
+		switch rv.Kind() {
+		case reflect.Slice, reflect.Array:
+			return rv.Slice(0, limit).Interface(), nil
+		case reflect.String:
+			return value, nil
+		default:
+			return nil, errors.New(fmt.Sprintf("Cannot join variable of type %T ('%v').", value, value))
+		}
+		panic("unreachable")
+	}
+
+	var pageFiles []string
+	pages := []pongo.Context{}
 	err = filepath.Walk(cfg.source, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
@@ -253,7 +306,11 @@ func main() {
 			err = os.MkdirAll(cfg.toPage(from), 0755)
 		} else {
 			if dot != '.' && dot != '_' {
-				pages = append(pages, from)
+				pageFiles = append(pageFiles, from)
+				vars := pongo.Context{}
+				vars["url"] = cfg.toUrl(from)
+				vars["date"] = info.ModTime()
+				pages = append(pages, vars)
 			}
 		}
 		return err
@@ -264,7 +321,7 @@ func main() {
 
 	categories := pongo.Context{}
 	var postFiles []string
-	var posts []pongo.Context
+	posts := []pongo.Context{}
 	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
 	err = filepath.Walk(base, func(name string, info os.FileInfo, err error) error {
 		if info == nil {
@@ -281,9 +338,14 @@ func main() {
 				if err != nil {
 					return err
 				}
+				fi, err := os.Stat(from)
+				if err != nil {
+					return err
+				}
 				postFiles = append(postFiles, from)
 				from = from[0:len(from)-len(ext)] + ".html"
 				vars["url"] = cfg.toUrl(filepath.Join(cfg.source, from[len(base):]))
+				vars["date"] = fi.ModTime()
 				if category, ok := vars["category"]; ok {
 					cname := str(category)
 					categorizedPosts := categories[cname]
@@ -307,7 +369,7 @@ func main() {
 	cfg.vars["site"].(pongo.Context)["posts"] = posts
 	cfg.vars["site"].(pongo.Context)["categories"] = categories
 
-	for _, from := range pages {
+	for _, from := range pageFiles {
 		to := cfg.toPage(from)
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
