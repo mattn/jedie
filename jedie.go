@@ -13,7 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+	//"time"
 )
 
 var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
@@ -27,18 +27,22 @@ type config struct {
 	baseUrl     string `yaml:"base-url"`
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
-	vars        map[string]interface{}
+	vars        pongo.Context
 }
 
+/* TODO
 type post struct {
 	title string
 }
+*/
 
+/* TODO
 type site struct {
 	time time.Time
 	pages []string
 	posts []post
 }
+*/
 
 func str(s interface{}) string {
 	if ss, ok := s.(string); ok {
@@ -177,10 +181,7 @@ func main() {
 
 	cfg.source = filepath.ToSlash(cfg.source)
 	cfg.destination = filepath.ToSlash(cfg.destination)
-	cfg.vars["site"] = &site{}
-
-	var pages []string
-	cfg.vars["site"].(*site).pages = pages
+	cfg.vars["site"] = pongo.Context{}
 
 	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		str, is_str := value.(string)
@@ -190,6 +191,7 @@ func main() {
 		return str, nil
 	}
 
+	var pages []string
 	err = filepath.Walk(cfg.source, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
@@ -211,6 +213,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	cfg.vars["site"].(pongo.Context)["pages"] = pages
 	for _, from := range pages {
 		to := cfg.to(from)
 		err = cfg.convertFile(from, to)
