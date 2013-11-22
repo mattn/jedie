@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/flosch/pongo"
@@ -162,6 +163,14 @@ func main() {
 
 	cfg.source = filepath.ToSlash(cfg.source)
 	cfg.destination = filepath.ToSlash(cfg.destination)
+
+	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+        str, is_str := value.(string)
+        if !is_str {
+                return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
+        }
+        return str, nil
+	}
 
 	err = filepath.Walk(cfg.source, func(path string, info os.FileInfo, err error) error {
 		if info == nil {
