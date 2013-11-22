@@ -341,6 +341,9 @@ func copyFile(src, dst string) (int64, error) {
 }
 
 func pongoSetup() {
+	pongo.Filters["safe"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		return value, nil
+	}
 	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		str, is_str := value.(string)
 		if !is_str {
