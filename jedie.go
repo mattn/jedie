@@ -438,9 +438,20 @@ func pongoSetup() {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Println("Usage of jedie:")
-		fmt.Println("  build  : Generate site")
-		fmt.Println("  server : Serve localy")
+		fmt.Println(string(`
+  NAME:
+
+    jedie
+
+  DESCRIPTION:
+
+    Static site generator in golang
+
+  COMMANDS:
+
+    build                Build your site
+    server               Serve your site locally
+`[1:]))
 	}
 	flag.Parse()
 	if flag.NArg() != 1 {
