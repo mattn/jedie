@@ -32,22 +32,6 @@ type config struct {
 	vars        pongo.Context
 }
 
-/*
-type post struct {
-	title string
-	file string
-	vars        pongo.Context
-}
-*/
-
-/* TODO
-type site struct {
-	time time.Time
-	pages []string
-	posts []post
-}
-*/
-
 func str(s interface{}) string {
 	if ss, ok := s.(string); ok {
 		return ss
@@ -261,14 +245,16 @@ func main() {
 		}
 
 		from := filepath.ToSlash(path)
+		dot := filepath.Base(path)[0]
 		if info.IsDir() {
-			dot := filepath.Base(path)[0]
 			if from == cfg.destination || dot == '.' || dot == '_' {
 				return filepath.SkipDir
 			}
 			err = os.MkdirAll(cfg.toPage(from), 0755)
 		} else {
-			pages = append(pages, from)
+			if dot != '.' && dot != '_' {
+				pages = append(pages, from)
+			}
 		}
 		return err
 	})
@@ -288,21 +274,27 @@ func main() {
 		if !info.IsDir() {
 			from := filepath.ToSlash(name)
 			vars := pongo.Context{}
-			_, err = parseFile(from, vars)
-			if err != nil {
-				return err
-			}
-			vars["url"] = cfg.toUrl(from)
-			if category, ok := vars["category"]; ok {
-				cname := str(category)
-				categorizedPosts := categories[cname]
-				if categorizedPosts == nil {
-					categorizedPosts = []pongo.Context{}
+			ext := filepath.Ext(from)
+			switch ext {
+			case ".html", ".md", ".mkd":
+				_, err = parseFile(from, vars)
+				if err != nil {
+					return err
 				}
-				categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
-				categories[cname] = categorizedPosts
-			} else {
-				posts = append(posts, vars)
+				postFiles = append(postFiles, from)
+				from = from[0:len(from)-len(ext)] + ".html"
+				vars["url"] = cfg.toUrl(filepath.Join(cfg.source, from[len(base):]))
+				if category, ok := vars["category"]; ok {
+					cname := str(category)
+					categorizedPosts := categories[cname]
+					if categorizedPosts == nil {
+						categorizedPosts = []pongo.Context{}
+					}
+					categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
+					categories[cname] = categorizedPosts
+				} else {
+					posts = append(posts, vars)
+				}
 			}
 		}
 		return err
@@ -325,7 +317,9 @@ func main() {
 	}
 
 	for _, from := range postFiles {
-		to := cfg.toPost(from)
+		ext := filepath.Ext(from)
+		to := filepath.Join(cfg.destination, from[len(base):])
+		to = to[0:len(to)-len(ext)] + ".html"
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
 		if err != nil {
