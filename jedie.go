@@ -2,18 +2,107 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/flosch/pongo"
+	"github.com/russross/blackfriday"
 	"io"
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
+	blackfriday.EXTENSION_TABLES |
+	blackfriday.EXTENSION_FENCED_CODE |
+	blackfriday.EXTENSION_AUTOLINK |
+	blackfriday.EXTENSION_STRIKETHROUGH |
+	blackfriday.EXTENSION_SPACE_HEADERS
 
 type config struct {
 	baseUrl     string `yaml:"base-url"`
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
+	vars		map[string]interface{}
+}
+
+func str(s interface{}) string {
+	if ss, ok := s.(string); ok {
+		return ss
+	}
+	return ""
+}
+
+func (cfg *config) convertFile(src, dst string) error {
+	var err error
+	ext := filepath.Ext(src)
+	switch ext {
+	case ".yml", ".go", ".exe":
+		return nil
+	case ".html", ".md", ".mkd":
+		vars := pongo.Context{"content": ""}
+		for k, v := range cfg.vars {
+			vars[k] = v
+		}
+		dst = dst[0:len(dst)-len(ext)] + ".html"
+
+		for {
+			b, err := ioutil.ReadFile(src)
+			if err != nil {
+				// TODO Really?
+				break
+			}
+			content := string(b)
+			lines := strings.Split(content, "\n")
+			if len(lines) > 2 && lines[0] == "---" {
+				var line string
+				var n int
+				for n, line = range lines[1:] {
+					if line == "---" {
+						break
+					}
+					token := strings.SplitN(line, ":", 2)
+					if len(token) == 2 && token[0] != "" {
+						vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
+					}
+				}
+				content = strings.Join(lines[n+2:], "\n")
+			}
+			// FIXME Why pongo returns pointer of string?
+			ps := new(string)
+			*ps = content
+			tpl, err := pongo.FromString(str(vars["layout"]), ps, nil)
+			if err == nil {
+				output, err := tpl.Execute(&vars)
+				if err == nil && output != nil {
+					content = *output
+				}
+			} else {
+				return err
+			}
+
+			if ext == ".md" || ext == ".mkd" {
+				renderer := blackfriday.HtmlRenderer(0, "", "")
+				vars["content"] = string(blackfriday.Markdown([]byte(content), renderer, extensions))
+			} else {
+				vars["content"] = content
+			}
+			if vars["layout"] == "" {
+				break
+			}
+			src = filepath.Join(cfg.source, "_layouts", str(vars["layout"])+".html")
+			ext = filepath.Ext(src)
+			content = str(vars["content"])
+			vars = pongo.Context{"content": content}
+		}
+		fmt.Println(dst)
+
+		return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
+	}
+	_, err = copyFile(src, dst)
+	return err
 }
 
 func copyFile(src, dst string) (int64, error) {
@@ -37,11 +126,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var cfg config
-	err = goyaml.Unmarshal(b, &cfg)
+
+	var globalVariables map[string]interface{}
+	err = goyaml.Unmarshal(b, &globalVariables)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	var cfg config
+	cfg.vars = globalVariables
+	cfg.source = str(globalVariables["source"])
+	cfg.destination = str(globalVariables["destination"])
+
 	if cfg.source == "" {
 		cfg.source = ""
 	}
@@ -81,9 +177,9 @@ func main() {
 			}
 			err = os.MkdirAll(to, 0755)
 		} else {
-			_, err = copyFile(from, to)
+			err = cfg.convertFile(from, to)
 		}
-		log.Println(from, to)
+		fmt.Println(from, "=>", to)
 		return err
 	})
 	if err != nil {
