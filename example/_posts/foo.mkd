@@ -1,0 +1,31 @@
+---
+layout: default
+title: Look my code!
+---
+# Look my code!
+
+## C
+
+```
+#include <stdio.h>
+int main() {
+  puts("helloworld");
+}
+```
+
+## Golang
+
+```go
+package main
+func main() {
+	println("helloworld")
+}
+```
+
+This is a `code`.
+
+{{ site.title }}
+
+{% for p in site.categories.blog %}
+{{ p }}
+{% endfor %}
