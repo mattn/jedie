@@ -433,7 +433,7 @@ func main() {
 		}
 	}
 
-	if flag.NArg() != 1 && flag.Arg(0) == "server" {
+	if flag.NArg() == 1 && flag.Arg(0) == "server" {
 		http.ListenAndServe(":4000", http.FileServer(http.Dir("_site")))
 	}
 }
