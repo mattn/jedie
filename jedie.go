@@ -10,7 +10,9 @@ import (
 	"io/ioutil"
 	"launchpad.net/goyaml"
 	"log"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	//"time"
@@ -24,16 +26,19 @@ var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
 	blackfriday.EXTENSION_SPACE_HEADERS
 
 type config struct {
-	baseUrl     string `yaml:"base-url"`
+	baseUrl     string `yaml:"baseUrl"`
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
 	vars        pongo.Context
 }
 
+/*
 type post struct {
 	title string
 	file string
+	vars        pongo.Context
 }
+*/
 
 /* TODO
 type site struct {
@@ -50,13 +55,52 @@ func str(s interface{}) string {
 	return ""
 }
 
+func (cfg *config) toUrl(from string) string {
+	return cfg.baseUrl + path.Clean(from[len(cfg.source):])
+}
+
 func (cfg *config) toPage(from string) string {
-	return filepath.Join(cfg.destination, from[len(cfg.source):])
+	return filepath.ToSlash(filepath.Join(cfg.destination, from[len(cfg.source):]))
 }
 
 func (cfg *config) toPost(from string) string {
 	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
-	return filepath.Join(cfg.destination, from[len(base):])
+	return filepath.ToSlash(filepath.Join(cfg.destination, from[len(base):]))
+}
+
+func parseFile(file string, vars pongo.Context) (string, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	content := string(b)
+	lines := strings.Split(content, "\n")
+	if len(lines) > 2 && lines[0] == "---" {
+		var line string
+		var n int
+		for n, line = range lines[1:] {
+			if line == "---" {
+				break
+			}
+			token := strings.SplitN(line, ":", 2)
+			if len(token) == 2 && token[0] != "" {
+				vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
+			}
+		}
+		content = strings.Join(lines[n+2:], "\n")
+	}
+	return content, nil
+}
+
+func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
+	return func(loc *string) (*string, error) {
+		inc := filepath.ToSlash(filepath.Join(cfg.source, "_includes", *loc))
+		tpl, err := pongo.FromFile(inc, include(cfg, vars))
+		if err != nil {
+			return nil, err
+		}
+		return tpl.Execute(&vars)
+	}
 }
 
 func (cfg *config) convertFile(src, dst string) error {
@@ -66,45 +110,46 @@ func (cfg *config) convertFile(src, dst string) error {
 	case ".yml", ".go", ".exe":
 		return nil
 	case ".html", ".md", ".mkd":
-		vars := pongo.Context{"content": ""}
-		for k, v := range cfg.vars {
-			vars[k] = v
-		}
 		dst = dst[0:len(dst)-len(ext)] + ".html"
+		fi, err := os.Stat(src)
+		if err != nil {
+			return err
+		}
 
+		vars := pongo.Context{"content": ""}
 		for {
-			b, err := ioutil.ReadFile(src)
+			for k, v := range cfg.vars {
+				vars[k] = v
+			}
+			content, err := parseFile(src, vars)
 			if err != nil {
 				// TODO Really?
 				break
 			}
-			content := string(b)
-			lines := strings.Split(content, "\n")
-			if len(lines) > 2 && lines[0] == "---" {
-				var line string
-				var n int
-				for n, line = range lines[1:] {
-					if line == "---" {
-						break
-					}
-					token := strings.SplitN(line, ":", 2)
-					if len(token) == 2 && token[0] != "" {
-						vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
-					}
-				}
-				content = strings.Join(lines[n+2:], "\n")
+			vars["post"] = pongo.Context{
+				"date": fi.ModTime(),
+				"url": cfg.toUrl(src),
+				"title": vars["title"],
 			}
 			// FIXME Why pongo returns pointer of string?
-			ps := new(string)
-			*ps = content
-			tpl, err := pongo.FromString(str(vars["layout"]), ps, nil)
-			if err == nil {
-				output, err := tpl.Execute(&vars)
-				if err == nil && output != nil {
-					content = *output
+			if content != "" {
+				ps := new(string)
+				*ps = content
+				//old := cfg.vars
+				//cfg.vars = vars
+				tpl, err := pongo.FromString(str(vars["layout"]), ps, include(cfg, vars))
+				//cfg.vars = old
+				if err == nil {
+					output, err := tpl.Execute(&vars)
+					if err == nil && output != nil {
+						content = *output
+					} else {
+					println(err.Error())
+						return err
+					}
+				} else {
+					return err
 				}
-			} else {
-				return err
 			}
 
 			if ext == ".md" || ext == ".mkd" {
@@ -116,12 +161,11 @@ func (cfg *config) convertFile(src, dst string) error {
 			if vars["layout"] == "" {
 				break
 			}
-			src = filepath.Join(cfg.source, "_layouts", str(vars["layout"])+".html")
+			src = filepath.ToSlash(filepath.Join(cfg.source, "_layouts", str(vars["layout"])+".html"))
 			ext = filepath.Ext(src)
 			content = str(vars["content"])
 			vars = pongo.Context{"content": content}
 		}
-		fmt.Println(dst)
 
 		return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
 	}
@@ -164,7 +208,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var globalVariables map[string]interface{}
+	var globalVariables pongo.Context
 	err = goyaml.Unmarshal(b, &globalVariables)
 	if err != nil {
 		log.Fatal(err)
@@ -172,6 +216,7 @@ func main() {
 
 	var cfg config
 	cfg.vars = globalVariables
+	cfg.baseUrl = str(globalVariables["baseUrl"])
 	cfg.source = str(globalVariables["source"])
 	cfg.destination = str(globalVariables["destination"])
 
@@ -206,7 +251,7 @@ func main() {
 		if !is_str {
 			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 		}
-		return str, nil
+		return url.QueryEscape(str), nil
 	}
 
 	var pages []string
@@ -231,26 +276,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var posts []post
+	categories := pongo.Context{}
+	var postFiles []string
+	var posts []pongo.Context
 	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
-	err = filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(base, func(name string, info os.FileInfo, err error) error {
 		if info == nil {
 			return err
 		}
 
-		from := filepath.ToSlash(path)
-		println(cfg.toPost(from))
-		/*
-		if info.IsDir() {
-			dot := filepath.Base(path)[0]
-			if from == cfg.destination || dot == '.' || dot == '_' {
-				return filepath.SkipDir
+		if !info.IsDir() {
+			from := filepath.ToSlash(name)
+			vars := pongo.Context{}
+			_, err = parseFile(from, vars)
+			if err != nil {
+				return err
 			}
-			err = os.MkdirAll(cfg.toPage(from), 0755)
-		} else {
-			pages = append(pages, from)
+			vars["url"] = cfg.toUrl(from)
+			if category, ok := vars["category"]; ok {
+				cname := str(category)
+				categorizedPosts := categories[cname]
+				if categorizedPosts == nil {
+					categorizedPosts = []pongo.Context{}
+				}
+				categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
+				categories[cname] = categorizedPosts
+			} else {
+				posts = append(posts, vars)
+			}
 		}
-		*/
 		return err
 	})
 	if err != nil {
@@ -259,16 +313,23 @@ func main() {
 
 	cfg.vars["site"].(pongo.Context)["pages"] = pages
 	cfg.vars["site"].(pongo.Context)["posts"] = posts
+	cfg.vars["site"].(pongo.Context)["categories"] = categories
 
 	for _, from := range pages {
 		to := cfg.toPage(from)
-		err = cfg.convertFile(from, to)
 		fmt.Println(from, "=>", to)
+		err = cfg.convertFile(from, to)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	for _, from := range posts {
-		to := cfg.toPost(from.file)
-		err = cfg.convertFile(from.file, to)
+	for _, from := range postFiles {
+		to := cfg.toPost(from)
 		fmt.Println(from, "=>", to)
+		err = cfg.convertFile(from, to)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
