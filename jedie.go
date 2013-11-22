@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
@@ -26,7 +27,17 @@ type config struct {
 	baseUrl     string `yaml:"base-url"`
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
-	vars		map[string]interface{}
+	vars        map[string]interface{}
+}
+
+type post struct {
+	title string
+}
+
+type site struct {
+	time time.Time
+	pages []string
+	posts []post
 }
 
 func str(s interface{}) string {
@@ -36,6 +47,9 @@ func str(s interface{}) string {
 	return ""
 }
 
+func (cfg *config) to(from string) string {
+	return filepath.Join(cfg.destination, from[len(cfg.source):])
+}
 func (cfg *config) convertFile(src, dst string) error {
 	var err error
 	ext := filepath.Ext(src)
@@ -163,13 +177,17 @@ func main() {
 
 	cfg.source = filepath.ToSlash(cfg.source)
 	cfg.destination = filepath.ToSlash(cfg.destination)
+	cfg.vars["site"] = &site{}
+
+	var pages []string
+	cfg.vars["site"].(*site).pages = pages
 
 	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-        str, is_str := value.(string)
-        if !is_str {
-                return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
-        }
-        return str, nil
+		str, is_str := value.(string)
+		if !is_str {
+			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
+		}
+		return str, nil
 	}
 
 	err = filepath.Walk(cfg.source, func(path string, info os.FileInfo, err error) error {
@@ -178,20 +196,24 @@ func main() {
 		}
 
 		from := filepath.ToSlash(path)
-		to := filepath.Join(cfg.destination, from[len(cfg.source):])
 		if info.IsDir() {
 			dot := filepath.Base(path)[0]
 			if from == cfg.destination || dot == '.' || dot == '_' {
 				return filepath.SkipDir
 			}
-			err = os.MkdirAll(to, 0755)
+			err = os.MkdirAll(cfg.to(from), 0755)
 		} else {
-			err = cfg.convertFile(from, to)
+			pages = append(pages, from)
 		}
-		fmt.Println(from, "=>", to)
 		return err
 	})
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	for _, from := range pages {
+		to := cfg.to(from)
+		err = cfg.convertFile(from, to)
+		fmt.Println(from, "=>", to)
 	}
 }
