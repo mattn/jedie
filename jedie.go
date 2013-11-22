@@ -109,8 +109,6 @@ func (cfg *config) convertFile(src, dst string) error {
 			}
 			content, err := parseFile(src, vars)
 			if err != nil {
-				// TODO Really?
-				//break
 				return err
 			}
 			vars["post"] = pongo.Context{
@@ -123,11 +121,10 @@ func (cfg *config) convertFile(src, dst string) error {
 				"url": cfg.toUrl(src),
 				"title": str(vars["title"]),
 			}
-			//vars["page"] = vars["post"]
-			// FIXME Why pongo returns pointer of string?
 			if content != "" {
 				ps := new(string)
 				*ps = content
+				// TODO The variables must be hidden for the each posts/pages?
 				//old := cfg.vars
 				//cfg.vars = vars
 				tpl, err := pongo.FromString(str(vars["layout"]), ps, include(cfg, vars))
