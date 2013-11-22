@@ -348,6 +348,13 @@ func pongoSetup() {
 		}
 		return url.QueryEscape(str), nil
 	}
+	pongo.Filters["date_to_string"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		date, ok := value.(time.Time)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("Date must be of type time.Time not %T ('%v')", value, value))
+		}
+		return date.String(), nil
+	}
 	pongo.Filters["date"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		if len(args) != 1 {
 			return nil, errors.New("Please provide a count of limit")
@@ -468,7 +475,7 @@ func main() {
 	case "server":
 		cfg.load("_config.yml")
 		cfg.build()
-		http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.source)))
+		http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.destination)))
 	default:
 		flag.Usage()
 	}
