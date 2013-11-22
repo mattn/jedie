@@ -411,7 +411,7 @@ func pongoSetup() {
 		if !ok {
 			return nil, errors.New(fmt.Sprintf("Date must be of type time.Time not %T ('%v')", value, value))
 		}
-		return date.String(), nil
+		return date.Format("2006/01/02 03:04:05"), nil
 	}
 	pongo.Filters["date"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		if len(args) != 1 {
