@@ -437,6 +437,11 @@ func pongoSetup() {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Println("Usage of jedie:")
+		fmt.Println("  build  : Generate site")
+		fmt.Println("  server : Serve localy")
+	}
 	flag.Parse()
 	if flag.NArg() != 1 {
 		flag.Usage()
@@ -445,13 +450,15 @@ func main() {
 	arg := flag.Arg(0)
 
 	var cfg config
-	cfg.load("_config.yml")
-
 	switch arg {
 	case "build":
+		cfg.load("_config.yml")
 		cfg.build()
 	case "server":
+		cfg.load("_config.yml")
 		cfg.build()
-		http.ListenAndServe(":4000", http.FileServer(http.Dir("_site")))
+		http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.source)))
+	default:
+		flag.Usage()
 	}
 }
