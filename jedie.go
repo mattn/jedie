@@ -40,6 +40,44 @@ func str(s interface{}) string {
 	return ""
 }
 
+func (cfg *config) load(file string) error {
+	b, err := ioutil.ReadFile("_config.yml")
+	if err != nil {
+		return err
+	}
+
+	var globalVariables pongo.Context
+	err = goyaml.Unmarshal(b, &globalVariables)
+	if err != nil {
+		return err
+	}
+
+	cfg.vars = globalVariables
+	cfg.baseUrl = str(globalVariables["baseUrl"])
+	cfg.source = str(globalVariables["source"])
+	cfg.destination = str(globalVariables["destination"])
+
+	if cfg.source == "" {
+		cfg.source = ""
+	}
+	if cfg.destination == "" {
+		cfg.destination = "_site"
+	}
+	cfg.source, err = filepath.Abs(cfg.source)
+	if err != nil {
+		return err
+	}
+	cfg.destination, err = filepath.Abs(cfg.destination)
+	if err != nil {
+		return err
+	}
+
+	cfg.source = filepath.ToSlash(cfg.source)
+	cfg.destination = filepath.ToSlash(cfg.destination)
+	cfg.vars["site"] = pongo.Context{}
+	return nil
+}
+
 func (cfg *config) toUrl(from string) string {
 	return cfg.baseUrl + filepath.ToSlash(from[len(cfg.source):])
 }
@@ -52,41 +90,6 @@ func (cfg *config) toPost(from string) string {
 	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
 	// TODO Separate permalink as %Y/%m/%d/title.html
 	return filepath.ToSlash(filepath.Join(cfg.destination, from[len(base):]))
-}
-
-func parseFile(file string, vars pongo.Context) (string, error) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return "", err
-	}
-	content := string(b)
-	lines := strings.Split(content, "\n")
-	if len(lines) > 2 && lines[0] == "---" {
-		var line string
-		var n int
-		for n, line = range lines[1:] {
-			if line == "---" {
-				break
-			}
-			token := strings.SplitN(line, ":", 2)
-			if len(token) == 2 && token[0] != "" {
-				vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
-			}
-		}
-		content = strings.Join(lines[n+2:], "\n")
-	}
-	return content, nil
-}
-
-func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
-	return func(loc *string) (*string, error) {
-		inc := filepath.ToSlash(filepath.Join(cfg.source, "_includes", *loc))
-		tpl, err := pongo.FromFile(inc, include(cfg, vars))
-		if err != nil {
-			return nil, err
-		}
-		return tpl.Execute(&vars)
-	}
 }
 
 func (cfg *config) convertFile(src, dst string) error {
@@ -174,6 +177,153 @@ func (cfg *config) createPost(src, dst string) error {
 	}
 	_, err = copyFile(src, dst)
 	return err
+}
+
+func (cfg *config) build() error {
+	pongoSetup()
+
+	var err error
+	var pageFiles []string
+	pages := []pongo.Context{}
+	err = filepath.Walk(cfg.source, func(name string, info os.FileInfo, err error) error {
+		if info == nil || name == cfg.source {
+			return err
+		}
+
+		from := filepath.ToSlash(name)
+		dot := filepath.Base(name)[0]
+		if info.IsDir() {
+			if from == cfg.destination || dot == '.' || dot == '_' {
+				return filepath.SkipDir
+			}
+			err = os.MkdirAll(cfg.toPage(from), 0755)
+		} else {
+			if dot != '.' && dot != '_' {
+				pageFiles = append(pageFiles, from)
+				vars := pongo.Context{}
+				vars["url"] = cfg.toUrl(from)
+				vars["date"] = info.ModTime()
+				pages = append(pages, vars)
+			}
+		}
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	categories := pongo.Context{}
+	var postFiles []string
+	posts := []pongo.Context{}
+	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
+	err = filepath.Walk(base, func(name string, info os.FileInfo, err error) error {
+		if info == nil || name == base {
+			return err
+		}
+
+		if !info.IsDir() {
+			from := filepath.ToSlash(name)
+			vars := pongo.Context{}
+			ext := filepath.Ext(from)
+			switch ext {
+			case ".html", ".md", ".mkd":
+				_, err = parseFile(from, vars)
+				if err != nil {
+					return err
+				}
+				fi, err := os.Stat(from)
+				if err != nil {
+					return err
+				}
+				postFiles = append(postFiles, from)
+				from = from[0:len(from)-len(ext)] + ".html"
+				vars["url"] = cfg.toUrl(filepath.Join(cfg.source, from[len(base):]))
+				vars["date"] = fi.ModTime()
+				if category, ok := vars["category"]; ok {
+					cname := str(category)
+					categorizedPosts := categories[cname]
+					if categorizedPosts == nil {
+						categorizedPosts = []pongo.Context{}
+					}
+					categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
+					categories[cname] = categorizedPosts
+				} else {
+					posts = append(posts, vars)
+				}
+			}
+		}
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg.vars["site"].(pongo.Context)["pages"] = pages
+	cfg.vars["site"].(pongo.Context)["posts"] = posts
+	cfg.vars["site"].(pongo.Context)["categories"] = categories
+
+	if _, err := os.Stat(cfg.destination); err != nil {
+		err = os.MkdirAll(cfg.destination, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	for _, from := range pageFiles {
+		to := cfg.toPage(from)
+		fmt.Println(from, "=>", to)
+		err = cfg.convertFile(from, to)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	for _, from := range postFiles {
+		ext := filepath.Ext(from)
+		to := filepath.Join(cfg.destination, from[len(base):])
+		to = to[0:len(to)-len(ext)] + ".html"
+		fmt.Println(from, "=>", to)
+		err = cfg.convertFile(from, to)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return nil
+}
+
+func parseFile(file string, vars pongo.Context) (string, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	content := string(b)
+	lines := strings.Split(content, "\n")
+	if len(lines) > 2 && lines[0] == "---" {
+		var line string
+		var n int
+		for n, line = range lines[1:] {
+			if line == "---" {
+				break
+			}
+			token := strings.SplitN(line, ":", 2)
+			if len(token) == 2 && token[0] != "" {
+				vars[strings.TrimSpace(token[0])] = strings.TrimSpace(token[1])
+			}
+		}
+		content = strings.Join(lines[n+2:], "\n")
+	}
+	return content, nil
+}
+
+func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
+	return func(loc *string) (*string, error) {
+		inc := filepath.ToSlash(filepath.Join(cfg.source, "_includes", *loc))
+		tpl, err := pongo.FromFile(inc, include(cfg, vars))
+		if err != nil {
+			return nil, err
+		}
+		return tpl.Execute(&vars)
+	}
 }
 
 func copyFile(src, dst string) (int64, error) {
@@ -288,152 +438,20 @@ func pongoSetup() {
 
 func main() {
 	flag.Parse()
-
-	b, err := ioutil.ReadFile("_config.yml")
-	if err != nil {
-		log.Fatal(err)
+	if flag.NArg() != 1 {
+		flag.Usage()
+		os.Exit(1)
 	}
-
-	var globalVariables pongo.Context
-	err = goyaml.Unmarshal(b, &globalVariables)
-	if err != nil {
-		log.Fatal(err)
-	}
+	arg := flag.Arg(0)
 
 	var cfg config
-	cfg.vars = globalVariables
-	cfg.baseUrl = str(globalVariables["baseUrl"])
-	cfg.source = str(globalVariables["source"])
-	cfg.destination = str(globalVariables["destination"])
+	cfg.load("_config.yml")
 
-	if cfg.source == "" {
-		cfg.source = ""
-	}
-	if cfg.destination == "" {
-		cfg.destination = "_site"
-	}
-	cfg.source, err = filepath.Abs(cfg.source)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.destination, err = filepath.Abs(cfg.destination)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if _, err := os.Stat(cfg.destination); err != nil {
-		err = os.MkdirAll(cfg.destination, 0755)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	cfg.source = filepath.ToSlash(cfg.source)
-	cfg.destination = filepath.ToSlash(cfg.destination)
-	cfg.vars["site"] = pongo.Context{}
-
-	pongoSetup()
-
-	var pageFiles []string
-	pages := []pongo.Context{}
-	err = filepath.Walk(cfg.source, func(name string, info os.FileInfo, err error) error {
-		if info == nil || name == cfg.source {
-			return err
-		}
-
-		from := filepath.ToSlash(name)
-		dot := filepath.Base(name)[0]
-		if info.IsDir() {
-			if from == cfg.destination || dot == '.' || dot == '_' {
-				return filepath.SkipDir
-			}
-			err = os.MkdirAll(cfg.toPage(from), 0755)
-		} else {
-			if dot != '.' && dot != '_' {
-				pageFiles = append(pageFiles, from)
-				vars := pongo.Context{}
-				vars["url"] = cfg.toUrl(from)
-				vars["date"] = info.ModTime()
-				pages = append(pages, vars)
-			}
-		}
-		return err
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	categories := pongo.Context{}
-	var postFiles []string
-	posts := []pongo.Context{}
-	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
-	err = filepath.Walk(base, func(name string, info os.FileInfo, err error) error {
-		if info == nil || name == base {
-			return err
-		}
-
-		if !info.IsDir() {
-			from := filepath.ToSlash(name)
-			vars := pongo.Context{}
-			ext := filepath.Ext(from)
-			switch ext {
-			case ".html", ".md", ".mkd":
-				_, err = parseFile(from, vars)
-				if err != nil {
-					return err
-				}
-				fi, err := os.Stat(from)
-				if err != nil {
-					return err
-				}
-				postFiles = append(postFiles, from)
-				from = from[0:len(from)-len(ext)] + ".html"
-				vars["url"] = cfg.toUrl(filepath.Join(cfg.source, from[len(base):]))
-				vars["date"] = fi.ModTime()
-				if category, ok := vars["category"]; ok {
-					cname := str(category)
-					categorizedPosts := categories[cname]
-					if categorizedPosts == nil {
-						categorizedPosts = []pongo.Context{}
-					}
-					categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
-					categories[cname] = categorizedPosts
-				} else {
-					posts = append(posts, vars)
-				}
-			}
-		}
-		return err
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfg.vars["site"].(pongo.Context)["pages"] = pages
-	cfg.vars["site"].(pongo.Context)["posts"] = posts
-	cfg.vars["site"].(pongo.Context)["categories"] = categories
-
-	for _, from := range pageFiles {
-		to := cfg.toPage(from)
-		fmt.Println(from, "=>", to)
-		err = cfg.convertFile(from, to)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	for _, from := range postFiles {
-		ext := filepath.Ext(from)
-		to := filepath.Join(cfg.destination, from[len(base):])
-		to = to[0:len(to)-len(ext)] + ".html"
-		fmt.Println(from, "=>", to)
-		err = cfg.convertFile(from, to)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if flag.NArg() == 1 && flag.Arg(0) == "server" {
+	switch arg {
+	case "build":
+		cfg.build()
+	case "server":
+		cfg.build()
 		http.ListenAndServe(":4000", http.FileServer(http.Dir("_site")))
 	}
 }
