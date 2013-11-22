@@ -1,0 +1,28 @@
+# Jedie
+
+jedie - static site generator, jekyll replacement, in golang.
+
+## Install
+
+
+### Requirements
+
+*   golang (of course!)
+*   git
+*   bzr
+
+### Dependencies
+
+Get dependencies at first.
+
+```
+go get github.com/flosch/pongo
+go get github.com/russross/blackfriday
+go get launchpad.net/goyaml
+```
+
+### build
+
+```
+go build
+```
