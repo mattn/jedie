@@ -93,7 +93,10 @@ func (cfg *config) toPost(from string) string {
 }
 
 func (cfg *config) convertFile(src, dst string) error {
-	var err error
+	err := os.MkdirAll(filepath.Dir(dst), 0755)
+	if err != nil {
+		return err
+	}
 	ext := filepath.Ext(src)
 	switch ext {
 	case ".yml", ".go", ".exe":
@@ -241,7 +244,6 @@ func (cfg *config) Build() error {
 			if from == cfg.destination || dot == '.' || dot == '_' {
 				return filepath.SkipDir
 			}
-			err = os.MkdirAll(cfg.toPage(from), 0755)
 		} else {
 			if dot != '.' && dot != '_' {
 				pageFiles = append(pageFiles, from)
