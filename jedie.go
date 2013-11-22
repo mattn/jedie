@@ -336,13 +336,13 @@ func main() {
 
 	var pageFiles []string
 	pages := []pongo.Context{}
-	err = filepath.Walk(cfg.source, func(path string, info os.FileInfo, err error) error {
-		if info == nil {
+	err = filepath.Walk(cfg.source, func(name string, info os.FileInfo, err error) error {
+		if info == nil || name == cfg.source {
 			return err
 		}
 
-		from := filepath.ToSlash(path)
-		dot := filepath.Base(path)[0]
+		from := filepath.ToSlash(name)
+		dot := filepath.Base(name)[0]
 		if info.IsDir() {
 			if from == cfg.destination || dot == '.' || dot == '_' {
 				return filepath.SkipDir
@@ -368,7 +368,7 @@ func main() {
 	posts := []pongo.Context{}
 	base := filepath.ToSlash(filepath.Join(cfg.source, "_posts"))
 	err = filepath.Walk(base, func(name string, info os.FileInfo, err error) error {
-		if info == nil {
+		if info == nil || name == base {
 			return err
 		}
 
