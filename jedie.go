@@ -160,7 +160,8 @@ func (cfg *config) convertFile(src, dst string) error {
 			src = filepath.ToSlash(filepath.Join(cfg.source, "_layouts", str(vars["layout"])+".html"))
 			ext = filepath.Ext(src)
 			content = str(vars["content"])
-			vars = pongo.Context{"content": content}
+			vars["content"] = content
+			vars["layout"] = ""
 		}
 
 		return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
