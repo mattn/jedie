@@ -103,7 +103,7 @@ func (cfg *config) toPostUrl(from string) string {
 			return cfg.baseUrl + date.Format("/2006/01/02/") + name[11:]
 		}
 	}
-	return cfg.baseUrl + filepath.ToSlash(from[len(cfg.posts):])
+	return cfg.baseUrl + "/" + name
 }
 
 func (cfg *config) toPage(from string) string {
