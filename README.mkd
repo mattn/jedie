@@ -4,7 +4,6 @@ jedie - static site generator, jekyll replacement, in golang.
 
 ## Install
 
-
 ### Requirements
 
 *   golang (of course!)
@@ -17,7 +16,7 @@ jedie - static site generator, jekyll replacement, in golang.
 go get github.com/mattn/jedie
 ```
 
-### Build after git clone
+### Or, Build after git clone
 
 Get dependencies at first.
 
