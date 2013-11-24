@@ -11,18 +11,48 @@ jedie - static site generator, jekyll replacement, in golang.
 *   git
 *   bzr
 
-### Dependencies
+### Install with `go get`
+
+```
+go get github.com/mattn/jedie
+```
+
+### Build after git clone
 
 Get dependencies at first.
 
 ```
+git clone https://github.com/mattn/jedie
+cd jedie
 go get github.com/flosch/pongo
 go get github.com/russross/blackfriday
 go get launchpad.net/goyaml
-```
-
-### build
-
-```
 go build
 ```
+
+## Usage
+
+At the first, create scaffold
+
+```
+mkdir /path/to/blog
+jeddie new /path/to/blog
+cd /path/to/blog
+vim _posts/2013-11-23-welcome-to-jedie.md
+jedie build
+```
+
+Then, you can see your site is built in `_site` directory.
+If you want to serve your site with http server:
+
+```
+jedie serve
+```
+
+## Author
+
+Yasuhiro Matsumoto (a.k.a mattn)
+
+## License
+
+MIT
