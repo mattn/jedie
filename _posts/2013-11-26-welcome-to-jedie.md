@@ -9,15 +9,13 @@ To add new posts, simply add a file in the `_posts` directory that follows the c
 
 Jekyll also offers powerful support for code snippets:
 
-```go
-package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("こんにちわ世界")
-}
-```
+    package main
+    
+    import "fmt"
+    
+    func main() {
+	    fmt.Println("こんにちわ世界")
+    }
 
 Check out the [Jedie][jedie-gh] for more info.
 
