@@ -1,4 +1,4 @@
 name: Your New Jedie Site
 description: You love golang, I love golang
-baseurl: http://mattn.github.io/jedie/
+baseurl: http://mattn.github.io/jedie
 encoding: UTF-8
