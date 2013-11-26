@@ -93,6 +93,22 @@ func (cfg *config) toPageUrl(from string) string {
 	return cfg.baseUrl + filepath.ToSlash(from[len(cfg.source):])
 }
 
+func (cfg *config) toDate(from string) time.Time {
+	fi, err := os.Stat(from)
+	if err != nil {
+		return time.Now()
+	}
+	name := filepath.Base(from)
+	if len(name) <= 11 {
+		return fi.ModTime()
+	}
+	date, err := time.Parse("2006-01-02-", name[:11])
+	if err != nil {
+		return fi.ModTime()
+	}
+	return date
+}
+
 func (cfg *config) toPostUrl(from string) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
@@ -133,10 +149,6 @@ func (cfg *config) convertFile(src, dst string) error {
 		if isMarkdown(src)  {
 			dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
 		}
-		fi, err := os.Stat(src)
-		if err != nil {
-			return err
-		}
 
 		vars := pongo.Context{"content": ""}
 		for {
@@ -152,12 +164,12 @@ func (cfg *config) convertFile(src, dst string) error {
 				vars[k] = v
 			}
 			vars["post"] = pongo.Context{
-				"date": fi.ModTime(),
+				"date": cfg.toDate(src),
 				"url": cfg.toPostUrl(src),
 				"title": str(vars["title"]),
 			}
 			vars["page"] = pongo.Context{
-				"date": fi.ModTime(),
+				"date": cfg.toDate(src),
 				"url": cfg.toPostUrl(src),
 				"title": str(vars["title"]),
 			}
