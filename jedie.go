@@ -43,6 +43,7 @@ func (cfg *config) load(file string) error {
 	cfg.posts = str(globalVariables["posts"])
 	cfg.includes = str(globalVariables["includes"])
 	cfg.layouts = str(globalVariables["layouts"])
+	fmt.Println(cfg.baseurl)
 
 	if cfg.source == "" {
 		cfg.source = "."
@@ -90,7 +91,7 @@ func (cfg *config) load(file string) error {
 }
 
 func (cfg *config) toPageUrl(from string) string {
-	return cfg.baseurl + filepath.ToSlash(from[len(cfg.source):])
+	return join(cfg.baseurl, filepath.ToSlash(from[len(cfg.source):]))
 }
 
 func (cfg *config) toDate(from string) time.Time {
@@ -116,10 +117,10 @@ func (cfg *config) toPostUrl(from string) string {
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
-			return cfg.baseurl + date.Format("/2006/01/02/") + name[11:]
+			return join(cfg.baseurl, date.Format("/2006/01/02/") + name[11:])
 		}
 	}
-	return cfg.baseurl + "/" + name
+	return join(cfg.baseurl, name)
 }
 
 func (cfg *config) toPage(from string) string {
@@ -298,6 +299,7 @@ func (cfg *config) Build() error {
 		log.Fatal(err)
 	}
 
+	cfg.vars["site"].(pongo.Context)["baseurl"] = cfg.baseurl
 	cfg.vars["site"].(pongo.Context)["time"] = time.Now()
 	cfg.vars["site"].(pongo.Context)["pages"] = pages
 	cfg.vars["site"].(pongo.Context)["posts"] = posts
