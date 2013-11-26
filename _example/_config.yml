@@ -1,5 +1,0 @@
-encoding: utf-8
-safe:        false
-baseUrl:    http://localhost:4000
-source:      .
-destination: ./_site
