@@ -1,2 +1,7 @@
 *.exe
 _site
+_layouts
+_includes
+_posts
+_config.yml
+assets
