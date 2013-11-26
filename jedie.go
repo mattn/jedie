@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/flosch/pongo"
+	"github.com/howeyc/fsnotify"
 	"github.com/russross/blackfriday"
 	"io/ioutil"
 	"launchpad.net/goyaml"
@@ -43,7 +44,6 @@ func (cfg *config) load(file string) error {
 	cfg.posts = str(globalVariables["posts"])
 	cfg.includes = str(globalVariables["includes"])
 	cfg.layouts = str(globalVariables["layouts"])
-	fmt.Println(cfg.baseurl)
 
 	if cfg.source == "" {
 		cfg.source = "."
@@ -337,6 +337,64 @@ func (cfg *config) Serve() error {
 	if err != nil {
 		return err
 	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	err = filepath.Walk(cfg.source, func(name string, info os.FileInfo, err error) error {
+		if info == nil || name == cfg.destination {
+			return err
+		}
+		if info.IsDir() {
+			if filepath.HasPrefix(name, ".") || filepath.HasPrefix(name, "_") {
+				return filepath.SkipDir
+			}
+			err = watcher.WatchFlags(name, fsnotify.FSN_ALL)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() {
+		fired := false
+		for {
+			select {
+			case e := <-watcher.Event:
+				from := filepath.ToSlash(e.Name)
+				if filepath.HasPrefix(from, cfg.destination) {
+					continue
+				}
+				to := ""
+
+				if filepath.HasPrefix(from, cfg.posts) {
+					to = cfg.toPost(from)
+				} else if filepath.HasPrefix(from, cfg.source) {
+					to = cfg.toPage(from)
+				}
+				if to != "" {
+					if !fired {
+						fired = true
+						go func(from, to string) {
+							fired = false
+							select {
+							case <-time.After(100 * time.Millisecond):
+								fired = false
+								fmt.Println(from, "=>", to)
+								cfg.convertFile(from, to)
+							}
+						}(from, to)
+					}
+				}
+			case err := <-watcher.Error:
+				log.Println("Error:", err)
+			}
+		}
+	}()
 	return http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.destination)))
 }
 
