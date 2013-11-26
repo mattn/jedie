@@ -3,6 +3,7 @@ layout: post
 title:  "Welcome to Jedie!"
 date:   2013-11-22 21:42:47
 permalink: /jedie/2013/11/22/welcome-to-jedie.html
+category: jedie
 ---
 
 You'll find this post in your `_posts` directory - edit this post and re-build (or run with the `-w` switch) to see your changes!
