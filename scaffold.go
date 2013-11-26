@@ -55,15 +55,13 @@ To add new posts, simply add a file in the `+"`_posts`"+` directory that follows
 
 Jekyll also offers powerful support for code snippets:
 
-`+"```"+`go
-package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("こんにちわ世界")
-}
-`+"```"+`
+    package main
+    
+    import "fmt"
+    
+    func main() {
+	    fmt.Println("こんにちわ世界")
+    }
 
 Check out the [Jedie][jedie-gh] for more info.
 
@@ -75,7 +73,6 @@ var topPage = `
 layout: default
 title: Your New Jedie Site
 ---
-
 <div id="home">
   <h1>Blog Posts</h1>
   <ul class="posts">
@@ -93,8 +90,8 @@ layout: nil
 <?xml version="1.0" encoding="utf-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>{{ name | xml_escape }}</title>
-    <link>{{ description | xml_escape }}</link>
+    <title>{{ site.name | xml_escape }}</title>
+    <link>{{ site.description | xml_escape }}</link>
     <atom:link rel="self" type="application/rss+xml" href="{{ site.baseUrl | xml_escape }}{{ page.url | xml_escape}}" />
     <description>{{ site.description | xml_escape }}</description>
     <pubDate>{{ site.time | date:"%a, %d %b %Y %H:%M:%S +0900" }}</pubDate>

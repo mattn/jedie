@@ -15,7 +15,7 @@ import (
 )
 
 type config struct {
-	baseUrl     string `yaml:"baseUrl"`
+	baseurl     string `yaml:"baseurl"`
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
 	posts       string `yaml:"posts"`
@@ -37,7 +37,7 @@ func (cfg *config) load(file string) error {
 	}
 
 	cfg.vars = globalVariables
-	cfg.baseUrl = str(globalVariables["baseUrl"])
+	cfg.baseurl = str(globalVariables["baseurl"])
 	cfg.source = str(globalVariables["source"])
 	cfg.destination = str(globalVariables["destination"])
 	cfg.posts = str(globalVariables["posts"])
@@ -90,7 +90,7 @@ func (cfg *config) load(file string) error {
 }
 
 func (cfg *config) toPageUrl(from string) string {
-	return cfg.baseUrl + filepath.ToSlash(from[len(cfg.source):])
+	return cfg.baseurl + filepath.ToSlash(from[len(cfg.source):])
 }
 
 func (cfg *config) toDate(from string) time.Time {
@@ -116,10 +116,10 @@ func (cfg *config) toPostUrl(from string) string {
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
-			return cfg.baseUrl + date.Format("/2006/01/02/") + name[11:]
+			return cfg.baseurl + date.Format("/2006/01/02/") + name[11:]
 		}
 	}
-	return cfg.baseUrl + "/" + name
+	return cfg.baseurl + "/" + name
 }
 
 func (cfg *config) toPage(from string) string {
