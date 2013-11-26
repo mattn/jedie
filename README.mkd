@@ -35,7 +35,7 @@ At the first, create scaffold
 
 ```
 mkdir /path/to/blog
-jeddie new /path/to/blog
+jedie new /path/to/blog
 cd /path/to/blog
 vim _posts/2013-11-23-welcome-to-jedie.md
 jedie build
