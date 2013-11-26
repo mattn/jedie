@@ -129,11 +129,10 @@ func (cfg *config) convertFile(src, dst string) error {
 		return err
 	}
 	ext := filepath.Ext(src)
-	switch ext {
-	case ".yml", ".go", ".exe":
-		return nil
-	case ".html", ".md", ".mkd":
-		dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
+	if isConvertable(src) {
+		if isMarkdown(src)  {
+			dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
+		}
 		fi, err := os.Stat(src)
 		if err != nil {
 			return err
@@ -182,13 +181,13 @@ func (cfg *config) convertFile(src, dst string) error {
 				}
 			}
 
-			if ext == ".md" || ext == ".mkd" {
+			if isMarkdown(src) {
 				renderer := blackfriday.HtmlRenderer(0, "", "")
 				vars["content"] = string(blackfriday.Markdown([]byte(content), renderer, extensions))
 			} else {
 				vars["content"] = content
 			}
-			if str(vars["layout"]) == "" {
+			if str(vars["layout"]) == "" || str(vars["layout"]) == "nil" {
 				break
 			}
 			src = filepath.ToSlash(filepath.Join(cfg.layouts, str(vars["layout"])+".html"))
@@ -198,51 +197,19 @@ func (cfg *config) convertFile(src, dst string) error {
 			vars["layout"] = ""
 		}
 
-		return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
+		err = ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
+	} else {
+		switch ext {
+		case ".yml", ".go", ".exe":
+			return nil
+		}
+		_, err = copyFile(src, dst)
 	}
-	_, err = copyFile(src, dst)
 	return err
 }
 
 func (cfg *config) New(p string) error {
-	content := "name: Your New Jedie Site\n"
-	err := ioutil.WriteFile(filepath.Join(p, "_config.yml"), []byte(content), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Mkdir(filepath.Join(p, "_layouts"), 0755)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "default.html"), []byte(layoutDefault), 0644)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "post.html"), []byte(layoutPost), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Mkdir(filepath.Join(p, "css"), 0755)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "css", "site.css"), []byte(cssSite), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Mkdir(filepath.Join(p, "_posts"), 0755)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "_posts", time.Now().Format("2006-01-02-welcome-to-jedie.md")), []byte(postsBlog), 0644)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "index.html"), []byte(topPage), 0644)
-	if err != nil {
-		return err
-	}
-	return nil
+	return generateScaffold(p)
 }
 
 func (cfg *config) Build() error {
@@ -288,9 +255,7 @@ func (cfg *config) Build() error {
 		if !info.IsDir() {
 			from := filepath.ToSlash(name)
 			vars := pongo.Context{}
-			ext := filepath.Ext(from)
-			switch ext {
-			case ".html", ".md", ".mkd":
+			if isConvertable(from) {
 				_, err = parseFile(from, vars)
 				if err != nil {
 					return err
@@ -321,6 +286,7 @@ func (cfg *config) Build() error {
 		log.Fatal(err)
 	}
 
+	cfg.vars["site"].(pongo.Context)["time"] = time.Now()
 	cfg.vars["site"].(pongo.Context)["pages"] = pages
 	cfg.vars["site"].(pongo.Context)["posts"] = posts
 	cfg.vars["site"].(pongo.Context)["categories"] = categories

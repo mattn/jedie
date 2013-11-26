@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/flosch/pongo"
@@ -77,6 +79,15 @@ func pongoSetup() {
 			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
 		}
 		return url.QueryEscape(str), nil
+	}
+	pongo.Filters["xml_escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		str, is_str := value.(string)
+		if !is_str {
+			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
+		}
+		var b bytes.Buffer
+		xml.Escape(&b, []byte(str))
+		return b.String(), nil
 	}
 	pongo.Filters["date_to_string"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		date, ok := value.(time.Time)
@@ -163,7 +174,11 @@ func pongoSetup() {
 		rv := reflect.ValueOf(value)
 		switch rv.Kind() {
 		case reflect.Slice, reflect.Array:
-			return rv.Slice(0, limit).Interface(), nil
+			l := rv.Len()
+			if l < limit {
+				limit = l
+			}
+			return rv.Slice(0, l).Interface(), nil
 		case reflect.String:
 			return value, nil
 		default:
@@ -187,3 +202,20 @@ func copyFile(src, dst string) (int64, error) {
 	return io.Copy(df, sf)
 }
 
+func isMarkdown(src string) bool {
+	ext := filepath.Ext(src)
+	switch ext {
+	case ".md", ".mkd", ".markdown":
+		return true
+	}
+	return false
+}
+
+func isConvertable(src string) bool {
+	ext := filepath.Ext(src)
+	switch ext {
+	case ".html", ".xml", ".md", ".mkd", ".markdown":
+		return true
+	}
+	return false
+}

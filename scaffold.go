@@ -1,5 +1,12 @@
 package main
 
+import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"time"
+)
+
 var layoutDefault = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -78,3 +85,79 @@ title: Your New Jedie Site
   </ul>
 </div>
 `[1:]
+
+var rssXml = `
+---
+layout: nil
+---
+<?xml version="1.0" encoding="utf-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ name | xml_escape }}</title>
+    <link>{{ description | xml_escape }}</link>
+    <atom:link rel="self" type="application/rss+xml" href="{{ site.baseUrl | xml_escape }}{{ page.url | xml_escape}}" />
+    <description>{{ site.description | xml_escape }}</description>
+    <pubDate>{{ site.time | date:"%a, %d %b %Y %H:%M:%S +0900" }}</pubDate>
+    <lastBuildDate>{{ site.time | date:"%a, %d %b %Y %H:%M:%S +0900" }}</lastBuildDate>
+    {% for post in site.posts | limit:25 %}
+    <item>
+      <title>{{ post.title | xml_escape }}</title>
+      <link>{{ site.baseUrl | xml_escape }}{{ post.url | xml_escape }}</link>
+      <guid isPermaLink="false">tag:vim-jp.org,{{ post.date | date:"%Y/%m/%d" }}:{{ post.url | xml_escape }},rev:1</guid>
+      <pubDate>{{ post.date | date:"%a, %d %b %Y %H:%M:%S +0900" }}</pubDate>
+      <author>vim-jp</author>
+      <description>{{ post.content | xml_escape }}</description>
+    </item>
+    {% endfor %}
+  </channel> 
+</rss>
+`[1:]
+
+var configYml = `
+name: Your New Jedie Site
+description: You love golang, I love golang
+`[1:]
+
+func generateScaffold(p string) error {
+	err := ioutil.WriteFile(filepath.Join(p, "_config.yml"), []byte(configYml), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "_layouts"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "default.html"), []byte(layoutDefault), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "post.html"), []byte(layoutPost), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "css"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "css", "site.css"), []byte(cssSite), 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(filepath.Join(p, "_posts"), 0755)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "_posts", time.Now().Format("2006-01-02-welcome-to-jedie.md")), []byte(postsBlog), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "index.html"), []byte(topPage), 0644)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(p, "rss.xml"), []byte(rssXml), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
