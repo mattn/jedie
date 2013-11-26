@@ -2,7 +2,6 @@
 layout: post
 title:  "Welcome to Jedie!"
 date:   2013-11-22 21:42:47
-permalink: /jedie/2013/11/22/welcome-to-jedie.html
 category: jedie
 ---
 
