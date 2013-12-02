@@ -143,7 +143,7 @@ func (cfg *config) toPost(from string) string {
 func (cfg *config) convertFile(src, dst string) error {
 	dir := filepath.Dir(dst)
 	_, err := os.Stat(dir)
-	if err == os.ErrExist {
+	if err != nil {
 		err = os.MkdirAll(filepath.Dir(dst), 0755)
 		if err != nil {
 			return err
