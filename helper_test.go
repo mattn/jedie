@@ -17,7 +17,7 @@ func TestSTR(t *testing.T) {
 	for _, test := range tests {
 		actual := str(test.in)
 		if actual != test.out {
-			t.Errorf("expected %V actual %V", test.in, test.out)
+			t.Errorf("expected %v actual %v", test.in, test.out)
 		}
 	}
 }
