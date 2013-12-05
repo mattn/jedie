@@ -257,9 +257,7 @@ func (cfg *config) Build() error {
 		}
 		return err
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkFatal(err)
 
 	categories := pongo.Context{}
 	var postFiles []string
@@ -299,9 +297,7 @@ func (cfg *config) Build() error {
 		}
 		return err
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkFatal(err)
 
 	cfg.vars["site"].(pongo.Context)["baseurl"] = cfg.baseurl
 	cfg.vars["site"].(pongo.Context)["time"] = time.Now()
@@ -311,27 +307,21 @@ func (cfg *config) Build() error {
 
 	if _, err := os.Stat(cfg.destination); err != nil {
 		err = os.MkdirAll(cfg.destination, 0755)
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	}
 
 	for _, from := range pageFiles {
 		to := cfg.toPage(from)
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	}
 
 	for _, from := range postFiles {
 		to := cfg.toPost(from)
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	}
 	return nil
 }
@@ -361,9 +351,7 @@ func (cfg *config) Serve() error {
 		}
 		return nil
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	checkFatal(err)
 	go func() {
 		fired := false
 		for {
@@ -402,6 +390,12 @@ func (cfg *config) Serve() error {
 	return http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.destination)))
 }
 
+func checkFatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Println(`
@@ -432,27 +426,17 @@ func main() {
 			os.Exit(1)
 		}
 		err = cfg.New(p)
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	case flag.Arg(0) == "build":
 		err = cfg.load("_config.yml")
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 		err = cfg.Build()
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	case flag.Arg(0) == "serve":
 		err = cfg.load("_config.yml")
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 		err = cfg.Serve()
-		if err != nil {
-			log.Fatal(err)
-		}
+		checkFatal(err)
 	default:
 		flag.Usage()
 	}
