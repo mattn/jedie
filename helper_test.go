@@ -5,9 +5,10 @@ import (
 )
 
 func TestSTR(t *testing.T) {
+	pongoSetup()
 	tests := []struct {
 		in  interface{}
-		out interface{}
+		out string 
 	}{
 		{"", ""},
 		{1, ""},
