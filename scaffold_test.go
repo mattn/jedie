@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -25,4 +27,16 @@ func TestTemplate(t *testing.T) {
 			t.Errorf("nuts %v", layoutDefault)
 		}
 	}
+}
+
+func TestGenerateScaffold(t *testing.T) {
+	tempDir, err := ioutil.TempDir(".", "dude")
+
+	if err != nil {
+		panic(err)
+	}
+
+	generateScaffold(tempDir)
+
+	os.RemoveAll(tempDir)
 }
