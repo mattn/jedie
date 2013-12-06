@@ -48,7 +48,7 @@ func TestCopyFile(t *testing.T) {
 	inFile, err := ioutil.TempFile(".", "dude")
 
 	if err != nil {
-		t.Fatal("error creating temp file")
+		panic(err)
 	}
 
 	copyFile(inFile.Name(), "muhaha")
