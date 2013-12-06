@@ -25,7 +25,7 @@ func TestTemplate(t *testing.T) {
 
 	for _, test := range tests {
 		if strings.Contains(test.s, test.in) != test.out {
-			t.Errorf("nuts %v", layoutDefault)
+			t.Errorf("expected %s in %s", test.in, test.out)
 		}
 	}
 }
