@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -8,7 +10,7 @@ func TestSTR(t *testing.T) {
 	pongoSetup()
 	tests := []struct {
 		in  interface{}
-		out string 
+		out string
 	}{
 		{"", ""},
 		{1, ""},
@@ -40,6 +42,25 @@ func TestJOIN(t *testing.T) {
 			t.Errorf("expected %s actual %s", test.out, actual)
 		}
 	}
+}
+
+func TestCopyFile(t *testing.T) {
+	inFile, err := ioutil.TempFile(".", "dude")
+
+	if err != nil {
+		t.Fatal("error creating temp file")
+	}
+
+	copyFile(inFile.Name(), "muhaha")
+
+	if _, err := os.Stat("muhaha"); os.IsNotExist(err) {
+		t.Errorf("expected %s actual does not exist with error %v", inFile, err)
+		os.Remove(inFile.Name())
+		return
+	}
+
+	os.Remove(inFile.Name())
+	os.Remove("muhaha")
 }
 
 func TestIsMarkdown(t *testing.T) {
