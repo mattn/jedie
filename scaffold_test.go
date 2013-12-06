@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTemplate(t *testing.T) {
@@ -37,6 +38,25 @@ func TestGenerateScaffold(t *testing.T) {
 	}
 
 	generateScaffold(tempDir)
+
+	testFiles := []struct {
+		in  string
+		out bool
+	}{
+		{"_config.yml", true},
+		{"_layouts/default.html", true},
+		{"_layouts/post.html", true},
+		{"css/site.css", true},
+		{"_posts/" + time.Now().Format("2006-01-02-welcome-to-jedie.md"), true},
+		{"index.html", true},
+		{"rss.xml", true},
+	}
+
+	for _, test := range testFiles {
+		if _, err := os.Stat(tempDir + "/" + test.in); os.IsNotExist(err) {
+			t.Errorf("expected %s actual does not exist with error %v", test.in, err)
+		}
+	}
 
 	os.RemoveAll(tempDir)
 }
