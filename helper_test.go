@@ -34,6 +34,7 @@ func TestJOIN(t *testing.T) {
 		{"Dude", "Dude", "Dude/Dude"},
 		{"/Dude", "/Dude", "/Dude/Dude"},
 		{"/Dude", "Dude", "/Dude/Dude"},
+		{"Dude/", "/Dude", "Dude/Dude"},
 	}
 
 	for _, test := range tests {
@@ -61,6 +62,31 @@ func TestCopyFile(t *testing.T) {
 
 	os.Remove(inFile.Name())
 	os.Remove("muhaha")
+}
+
+func TestCopyFileErr(t *testing.T) {
+	in := ""
+
+	_, err := copyFile(in, "")
+
+	if err == nil {
+		t.Errorf("expected copyfile to return nil")
+	}
+
+	inFile, err := ioutil.TempFile(".", "dude")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(inFile.Name())
+
+	_, err = copyFile(inFile.Name(), "")
+
+	if err == nil {
+		t.Errorf("expected copyfile to return nil")
+	}
+
 }
 
 func TestIsMarkdown(t *testing.T) {
