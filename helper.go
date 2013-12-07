@@ -127,49 +127,60 @@ func pongoSetup() {
 				return nil, err
 			}
 		}
-		format = strings.Replace(format, "%a", "Mon", -1)
-		format = strings.Replace(format, "%A", "Monday", -1)
-		format = strings.Replace(format, "%b", "Jan", -1)
-		format = strings.Replace(format, "%B", "January", -1)
-		format = strings.Replace(format, "%c", time.RFC3339, -1)
-		format = strings.Replace(format, "%C", "06", -1)
-		format = strings.Replace(format, "%d", "02", -1)
-		format = strings.Replace(format, "%C", "01/02/06", -1)
-		format = strings.Replace(format, "%e", "_1/_2/_6", -1)
-		//format = strings.Replace(format, "%E", "", -1)
-		format = strings.Replace(format, "%F", "06-01-02", -1)
-		//format = strings.Replace(format, "%G", "", -1)
-		//format = strings.Replace(format, "%g", "", -1)
-		format = strings.Replace(format, "%h", "Jan", -1)
-		format = strings.Replace(format, "%H", "15", -1)
-		format = strings.Replace(format, "%I", "03", -1)
-		//format = strings.Replace(format, "%j", "", -1)
-		format = strings.Replace(format, "%k", "3", -1)
-		format = strings.Replace(format, "%l", "_3", -1)
-		format = strings.Replace(format, "%m", "01", -1)
-		format = strings.Replace(format, "%M", "04", -1)
-		format = strings.Replace(format, "%n", "\n", -1)
-		//format = strings.Replace(format, "%O", "", -1)
-		format = strings.Replace(format, "%p", "PM", -1)
-		format = strings.Replace(format, "%P", "pm", -1)
-		format = strings.Replace(format, "%r", "03:04:05 PM", -1)
-		format = strings.Replace(format, "%R", "03:04", -1)
-		//format = strings.Replace(format, "%s", "", -1)
-		format = strings.Replace(format, "%S", "05", -1)
-		format = strings.Replace(format, "%t", "\t", -1)
-		format = strings.Replace(format, "%T", "15:04:05", -1)
-		//format = strings.Replace(format, "%u", "", -1)
-		//format = strings.Replace(format, "%U", "", -1)
-		//format = strings.Replace(format, "%V", "", -1)
-		//format = strings.Replace(format, "%W", "", -1)
-		//format = strings.Replace(format, "%x", "", -1)
-		//format = strings.Replace(format, "%X", "", -1)
-		format = strings.Replace(format, "%y", "06", -1)
-		format = strings.Replace(format, "%Y", "2006", -1)
-		format = strings.Replace(format, "%z", "-0700", -1)
-		format = strings.Replace(format, "%Z", "MST", -1)
-		//format = strings.Replace(format, "%+", "", -1)
-		format = strings.Replace(format, "%%", "%", -1)
+
+		replacements := []struct {
+			from string
+			to   string
+		}{
+			{"%a", "Mon"},
+			{"%A", "Monday"},
+			{"%b", "Jan"},
+			{"%B", "January"},
+			{"%c", time.RFC3339},
+			{"%C", "06"},
+			{"%d", "02"},
+			{"%C", "01/02/06"},
+			{"%e", "_1/_2/_6"},
+			// {"%E", ""},
+			{"%F", "06-01-02"},
+			// {"%G", ""},
+			// {"%g", ""},
+			{"%h", "Jan"},
+			{"%H", "15"},
+			{"%I", "03"},
+			// {"%j", ""},
+			{"%k", "3"},
+			{"%l", "_3"},
+			{"%m", "01"},
+			{"%M", "04"},
+			{"%n", "\n"},
+			// {"%O", ""},
+			{"%p", "PM"},
+			{"%P", "pm"},
+			{"%r", "03:04:05 PM"},
+			{"%R", "03:04"},
+			// {"%s", ""},
+			{"%S", "05"},
+			{"%t", "\t"},
+			{"%T", "15:04:05"},
+			// {"%u", ""},
+			// {"%U", ""},
+			// {"%V", ""},
+			// {"%W", ""},
+			// {"%x", ""},
+			// {"%X", ""},
+			{"%y", "06"},
+			{"%Y", "2006"},
+			{"%z", "-0700"},
+			{"%Z", "MST"},
+			// {"%+", ""},
+			{"%%", "%"},
+		}
+
+		for _, replacement := range replacements {
+			format = strings.Replace(format, replacement.from, replacement.to, -1)
+		}
+
 		return date.Format(format), nil
 	}
 	pongo.Filters["limit"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {

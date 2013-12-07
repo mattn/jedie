@@ -116,45 +116,35 @@ description: You love golang, I love golang
 `[1:]
 
 func generateScaffold(p string) error {
-	err := ioutil.WriteFile(filepath.Join(p, "_config.yml"), []byte(configYml), 0644)
-	if err != nil {
-		return err
+	directories := []string{"_layouts", "css", "_posts"}
+
+	for _, directory := range directories {
+		err := os.Mkdir(filepath.Join(p, directory), 0755)
+		if err != nil {
+			return err
+		}
 	}
-	err = os.Mkdir(filepath.Join(p, "_layouts"), 0755)
-	if err != nil {
-		return err
+
+	files := []struct {
+		first       string
+		last        string
+		templateVar string
+	}{
+		{"_config.yml", "", configYml},
+		{"_layouts", "default.html", layoutDefault},
+		{"_layouts", "post.html", layoutPost},
+		{"css", "site.css", cssSite},
+		{"_posts", time.Now().Format("2006-01-02-welcome-to-jedie.md"), postsBlog},
+		{"index.html", "", topPage},
+		{"rss.xml", "", rssXml},
 	}
-	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "default.html"), []byte(layoutDefault), 0644)
-	if err != nil {
-		return err
+
+	for _, file := range files {
+		err := ioutil.WriteFile(filepath.Join(p, file.first, file.last), []byte(file.templateVar), 0644)
+		if err != nil {
+			return err
+		}
 	}
-	err = ioutil.WriteFile(filepath.Join(p, "_layouts", "post.html"), []byte(layoutPost), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Mkdir(filepath.Join(p, "css"), 0755)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "css", "site.css"), []byte(cssSite), 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Mkdir(filepath.Join(p, "_posts"), 0755)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "_posts", time.Now().Format("2006-01-02-welcome-to-jedie.md")), []byte(postsBlog), 0644)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "index.html"), []byte(topPage), 0644)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(p, "rss.xml"), []byte(rssXml), 0644)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
