@@ -73,6 +73,6 @@ func TestCreateFiles(t *testing.T) {
 	err := createFiles("^")
 
 	if err == nil {
-		t.Errorf("expected generateScaffold to return nil")
+		t.Errorf("expected createFiles to return nil")
 	}
 }
