@@ -115,16 +115,20 @@ name: Your New Jedie Site
 description: You love golang, I love golang
 `[1:]
 
-func generateScaffold(p string) error {
+func createDirectories(path string) error {
 	directories := []string{"_layouts", "css", "_posts"}
 
 	for _, directory := range directories {
-		err := os.Mkdir(filepath.Join(p, directory), 0755)
+		err := os.Mkdir(filepath.Join(path, directory), 0755)
 		if err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func createFiles(path string) error {
 	files := []struct {
 		first       string
 		last        string
@@ -140,11 +144,23 @@ func generateScaffold(p string) error {
 	}
 
 	for _, file := range files {
-		err := ioutil.WriteFile(filepath.Join(p, file.first, file.last), []byte(file.templateVar), 0644)
+		err := ioutil.WriteFile(filepath.Join(path, file.first, file.last), []byte(file.templateVar), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func generateScaffold(path string) error {
+	err := createDirectories(path)
+
+	if err != nil {
+		return err
+	}
+
+	err = createFiles(path)
+
+	return err
 }
