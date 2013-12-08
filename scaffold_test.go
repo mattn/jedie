@@ -60,3 +60,19 @@ func TestGenerateScaffold(t *testing.T) {
 
 	os.RemoveAll(tempDir)
 }
+
+func TestGenerateScaffoldErr(t *testing.T) {
+	err := generateScaffold("")
+
+	if err == nil {
+		t.Errorf("expected generateScaffold to return nil")
+	}
+}
+
+func TestCreateFiles(t *testing.T) {
+	err := createFiles("^")
+
+	if err == nil {
+		t.Errorf("expected generateScaffold to return nil")
+	}
+}
