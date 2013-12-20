@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -98,6 +99,28 @@ func pongoSetup() {
 		var b bytes.Buffer
 		xml.Escape(&b, []byte(str))
 		return b.String(), nil
+	}
+	pongo.Filters["truncate"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		if len(args) != 1 {
+			return nil, errors.New("Please provide a count of letters")
+		}
+		letters, is_int := args[0].(int)
+		if !is_int {
+			return nil, errors.New(fmt.Sprintf("Limit must be of type int, not %T ('%v')", args[0], args[0]))
+		}
+		str := fmt.Sprint(value)
+		rs := []rune(str)
+		if letters > len(rs) {
+			letters = len(rs)
+		}
+		return string(rs[:letters]), nil
+	}
+	pongo.Filters["strip_html"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
+		str, is_str := value.(string)
+		if !is_str {
+			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
+		}
+		return regexp.MustCompile("<[^>]+>").ReplaceAllString(str, ""), nil
 	}
 	pongo.Filters["date_to_string"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
 		date, ok := value.(time.Time)
