@@ -20,6 +20,7 @@ type config struct {
 	source      string `yaml:"source"`
 	destination string `yaml:"destination"`
 	posts       string `yaml:"posts"`
+	data        string `yaml:"data"`
 	includes    string `yaml:"includes"`
 	layouts     string `yaml:"layouts"`
 	vars        pongo.Context
@@ -42,6 +43,7 @@ func (cfg *config) load(file string) error {
 	cfg.source = str(globalVariables["source"])
 	cfg.destination = str(globalVariables["destination"])
 	cfg.posts = str(globalVariables["posts"])
+	cfg.data = str(globalVariables["data"])
 	cfg.includes = str(globalVariables["includes"])
 	cfg.layouts = str(globalVariables["layouts"])
 
@@ -53,6 +55,9 @@ func (cfg *config) load(file string) error {
 	}
 	if cfg.posts == "" {
 		cfg.posts = "_posts"
+	}
+	if cfg.data == "" {
+		cfg.data = "_data"
 	}
 	if cfg.includes == "" {
 		cfg.includes = "_includes"
@@ -72,6 +77,10 @@ func (cfg *config) load(file string) error {
 	if err != nil {
 		return err
 	}
+	cfg.data, err = filepath.Abs(cfg.data)
+	if err != nil {
+		return err
+	}
 	cfg.includes, err = filepath.Abs(cfg.includes)
 	if err != nil {
 		return err
@@ -84,6 +93,7 @@ func (cfg *config) load(file string) error {
 	cfg.source = filepath.ToSlash(cfg.source)
 	cfg.destination = filepath.ToSlash(cfg.destination)
 	cfg.posts = filepath.ToSlash(cfg.posts)
+	cfg.data = filepath.ToSlash(cfg.data)
 	cfg.includes = filepath.ToSlash(cfg.includes)
 	cfg.layouts = filepath.ToSlash(cfg.layouts)
 	cfg.vars["site"] = pongo.Context{}
@@ -160,7 +170,7 @@ func (cfg *config) convertFile(src, dst string) error {
 			for k, v := range cfg.vars {
 				vars[k] = v
 			}
-			pageVars := pongo.Context{}
+			pageVars := map[string]interface{}{}
 			content, err := parseFile(src, pageVars)
 			if err != nil {
 				return err
@@ -168,12 +178,12 @@ func (cfg *config) convertFile(src, dst string) error {
 			for k, v := range pageVars {
 				vars[k] = v
 			}
-			vars["post"] = pongo.Context{
+			vars["post"] = map[string]interface{}{
 				"date":  cfg.toDate(src),
 				"url":   cfg.toPostUrl(src),
 				"title": str(vars["title"]),
 			}
-			vars["page"] = pongo.Context{
+			vars["page"] = map[string]interface{}{
 				"date":  cfg.toDate(src),
 				"url":   cfg.toPostUrl(src),
 				"title": str(vars["title"]),
@@ -234,7 +244,7 @@ func (cfg *config) Build() error {
 
 	var err error
 	var pageFiles []string
-	pages := []pongo.Context{}
+	pages := []map[string]interface{}{}
 	err = filepath.Walk(cfg.source, func(name string, info os.FileInfo, err error) error {
 		if info == nil || name == cfg.source {
 			return err
@@ -249,7 +259,7 @@ func (cfg *config) Build() error {
 		} else {
 			if dot != '.' && dot != '_' {
 				pageFiles = append(pageFiles, from)
-				vars := pongo.Context{}
+				vars := map[string]interface{}{}
 				vars["url"] = cfg.toPageUrl(from)
 				vars["date"] = info.ModTime()
 				pages = append(pages, vars)
@@ -266,34 +276,35 @@ func (cfg *config) Build() error {
 		if info == nil || name == cfg.posts {
 			return err
 		}
-
-		if !info.IsDir() {
-			from := filepath.ToSlash(name)
-			vars := pongo.Context{}
-			if isConvertable(from) {
-				_, err = parseFile(from, vars)
-				if err != nil {
-					return err
-				}
-				fi, err := os.Stat(from)
-				if err != nil {
-					return err
-				}
-				postFiles = append(postFiles, from)
-				vars["url"] = cfg.toPostUrl(from)
-				vars["date"] = fi.ModTime()
-				if category, ok := vars["category"]; ok {
-					cname := str(category)
-					categorizedPosts := categories[cname]
-					if categorizedPosts == nil {
-						categorizedPosts = []pongo.Context{}
-					}
-					categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
-					categories[cname] = categorizedPosts
-				} else {
-					posts = append(posts, vars)
-				}
+		if info.IsDir() {
+			return err
+		}
+		from := filepath.ToSlash(name)
+		if !isConvertable(from) {
+			return err
+		}
+		vars := pongo.Context{}
+		_, err = parseFile(from, vars)
+		if err != nil {
+			return err
+		}
+		fi, err := os.Stat(from)
+		if err != nil {
+			return err
+		}
+		postFiles = append(postFiles, from)
+		vars["url"] = cfg.toPostUrl(from)
+		vars["date"] = fi.ModTime()
+		if category, ok := vars["category"]; ok {
+			cname := str(category)
+			categorizedPosts := categories[cname]
+			if categorizedPosts == nil {
+				categorizedPosts = []pongo.Context{}
 			}
+			categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
+			categories[cname] = categorizedPosts
+		} else {
+			posts = append(posts, vars)
 		}
 		return err
 	})
@@ -304,6 +315,28 @@ func (cfg *config) Build() error {
 	cfg.vars["site"].(pongo.Context)["pages"] = pages
 	cfg.vars["site"].(pongo.Context)["posts"] = posts
 	cfg.vars["site"].(pongo.Context)["categories"] = categories
+	cfg.vars["site"].(pongo.Context)["data"] = pongo.Context{}
+
+	fis, err := ioutil.ReadDir(cfg.data)
+	if err == nil {
+		for _, fi := range fis {
+			ext := filepath.Ext(fi.Name())
+			var data interface{}
+			switch ext {
+			case ".yaml", ".yml":
+				b, err := ioutil.ReadFile(filepath.Join(cfg.data, fi.Name()))
+				if err != nil {
+					return err
+				}
+				err = goyaml.Unmarshal(b, &data)
+				if err == nil {
+					name := fi.Name()
+					name = name[0:len(name)-len(ext)]
+					cfg.vars["site"].(pongo.Context)["data"].(pongo.Context)[name] = data
+				}
+			}
+		}
+	}
 
 	if _, err := os.Stat(cfg.destination); err != nil {
 		err = os.MkdirAll(cfg.destination, 0755)
