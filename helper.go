@@ -45,7 +45,7 @@ func join(l, r string) string {
 
 func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
 	return func(loc *string) (*string, error) {
-		inc := filepath.ToSlash(filepath.Join(cfg.includes, *loc))
+		inc := filepath.ToSlash(filepath.Join(cfg.Includes, *loc))
 		tpl, err := pongo.FromFile(inc, include(cfg, vars))
 		if err != nil {
 			return nil, err
