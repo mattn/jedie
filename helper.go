@@ -40,7 +40,7 @@ func join(l, r string) string {
 	if !strings.HasSuffix(l, "/") && !strings.HasPrefix(r, "/") {
 		return l + "/" + r
 	}
-	return l + r
+	return strings.Replace(l + r, "//", "/", -1)
 }
 
 func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {

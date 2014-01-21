@@ -25,6 +25,8 @@ type config struct {
 	Includes    string `yaml:"includes"`
 	Layouts     string `yaml:"layouts"`
 	Permalink   string `yaml:"permalink"`
+	Host		string `yaml:"host"`
+	Port		int `yaml:"port"`
 	vars        pongo.Context
 }
 
@@ -62,6 +64,9 @@ func (cfg *config) load(file string) error {
 	}
 	if cfg.Layouts == "" {
 		cfg.Layouts = "_layouts"
+	}
+	if cfg.Port <= 0  {
+		cfg.Port = 4000
 	}
 	if cfg.Permalink == "" {
 		cfg.Permalink = "date"
@@ -472,7 +477,7 @@ func (cfg *config) Serve() error {
 			}
 		}
 	}()
-	return http.ListenAndServe(":4000", http.FileServer(http.Dir(cfg.Destination)))
+	return http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port), http.FileServer(http.Dir(cfg.Destination)))
 }
 
 func checkFatal(err error) {
