@@ -76,6 +76,10 @@ func parseFile(file string, vars pongo.Context) (string, error) {
 			return "", err
 		}
 		content = strings.Join(lines[n+2:], "\n")
+	} else if isMarkdown(file) {
+		vars["title"] = ""
+		vars["layout"] = "plain"
+		vars["date"] = ""
 	}
 	return content, nil
 }
