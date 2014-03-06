@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/flosch/pongo"
+	"github.com/go-yaml/go-yaml-v1"
 	"github.com/russross/blackfriday"
 	"io"
 	"io/ioutil"
-	"launchpad.net/goyaml"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -62,16 +62,14 @@ func parseFile(file string, vars pongo.Context) (string, error) {
 	content := string(b)
 	lines := strings.Split(content, "\n")
 	if len(lines) > 2 && lines[0] == "---" {
-		var line string
 		var n int
-		var yaml string
+		var line string
 		for n, line = range lines[1:] {
 			if line == "---" {
 				break
 			}
-			yaml += line + "\n"
 		}
-		err = goyaml.Unmarshal(b, &vars)
+		err = yaml.Unmarshal(b, &vars)
 		if err != nil {
 			return "", err
 		}
