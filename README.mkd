@@ -13,7 +13,6 @@ jedie - static site generator, jekyll replacement, in golang.
 
 *   golang (of course!)
 *   git
-*   bzr
 
 ### Install with `go get`
 

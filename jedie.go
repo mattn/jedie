@@ -7,7 +7,7 @@ import (
 	"github.com/howeyc/fsnotify"
 	"github.com/russross/blackfriday"
 	"io/ioutil"
-	"launchpad.net/goyaml"
+	"gopkg.in/yaml.v1"
 	"log"
 	"net/http"
 	"os"
@@ -41,7 +41,7 @@ func (cfg *config) load(file string) error {
 		return err
 	}
 
-	err = goyaml.Unmarshal(b, cfg)
+	err = yaml.Unmarshal(b, cfg)
 	if err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ func (cfg *config) Build() error {
 				if err != nil {
 					return err
 				}
-				err = goyaml.Unmarshal(b, &data)
+				err = yaml.Unmarshal(b, &data)
 				if err == nil {
 					name := fi.Name()
 					name = name[0 : len(name)-len(ext)]
