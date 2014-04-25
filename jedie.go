@@ -153,8 +153,8 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			postUrl := cfg.Permalink
 			postUrl = strings.Replace(postUrl, ":categories", category, -1)
 			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
-			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%02d", date.Month()), -1)
+			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%02d", date.Month()), -1)
+			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
