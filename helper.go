@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/flosch/pongo"
-	"github.com/go-yaml/go-yaml-v1"
+	"gopkg.in/yaml.v1"
 	"github.com/russross/blackfriday"
 	"io"
 	"io/ioutil"
