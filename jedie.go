@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"github.com/extemporalgenome/slug"
 )
 
 type config struct {
@@ -193,6 +194,8 @@ func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
+			postUrl = strings.Replace(postUrl, ":slug_title", slug.Slug(title), -1)
+			postUrl = strings.Replace(postUrl, ":slug_ascii_title", slug.SlugAscii(title), -1)
 			return filepath.ToSlash(filepath.Join(cfg.Destination, postUrl))
 		}
 	}

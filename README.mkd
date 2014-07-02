@@ -31,6 +31,7 @@ go get github.com/flosch/pongo
 go get github.com/howeyc/fsnotify
 go get github.com/russross/blackfriday
 go get gopkg.in/yaml.v1
+go get github.com/extemporalgenome/slug
 go build
 ```
 
