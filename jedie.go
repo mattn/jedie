@@ -3,18 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/extemporalgenome/slug"
 	"github.com/flosch/pongo"
 	"github.com/howeyc/fsnotify"
 	"github.com/russross/blackfriday"
-	"io/ioutil"
 	"gopkg.in/yaml.v1"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/extemporalgenome/slug"
 )
 
 type config struct {
@@ -26,8 +26,8 @@ type config struct {
 	Includes    string `yaml:"includes"`
 	Layouts     string `yaml:"layouts"`
 	Permalink   string `yaml:"permalink"`
-	Host		string `yaml:"host"`
-	Port		int `yaml:"port"`
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
 	vars        pongo.Context
 }
 
@@ -66,7 +66,7 @@ func (cfg *config) load(file string) error {
 	if cfg.Layouts == "" {
 		cfg.Layouts = "_layouts"
 	}
-	if cfg.Port <= 0  {
+	if cfg.Port <= 0 {
 		cfg.Port = 4000
 	}
 	if cfg.Permalink == "" {
@@ -136,7 +136,7 @@ func (cfg *config) toDate(from string) time.Time {
 	return date
 }
 
-func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) string {
+func (cfg *config) toPostPath(from string, pageVars map[string]interface{}) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
 	name = name[0:len(name)-len(ext)] + ".html"
@@ -151,55 +151,32 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			if v, ok := pageVars["title"]; ok {
 				title, _ = v.(string)
 			}
-			postUrl := cfg.Permalink
-			postUrl = strings.Replace(postUrl, ":categories", category, -1)
-			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
-			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%02d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			return join(cfg.Baseurl, postUrl)
+			path := cfg.Permalink
+			path = strings.Replace(path, ":categories", category, -1)
+			path = strings.Replace(path, ":year", fmt.Sprintf("%d", date.Year()), -1)
+			path = strings.Replace(path, ":month", fmt.Sprintf("%02d", date.Month()), -1)
+			path = strings.Replace(path, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
+			path = strings.Replace(path, ":day", fmt.Sprintf("%02d", date.Day()), -1)
+			path = strings.Replace(path, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
+			path = strings.Replace(path, ":title", title, -1)
+			path = strings.Replace(path, ":slug_title", slug.Slug(title), -1)
+			path = strings.Replace(path, ":slug_ascii_title", slug.SlugAscii(title), -1)
+			return path
 		}
 	}
-	return join(cfg.Baseurl, name)
+	return name
 }
 
-func (cfg *config) toPage(from string) string {
-	if cfg.Permalink != "" {
-	}
-	return filepath.ToSlash(filepath.Join(cfg.Destination, from[len(cfg.Source):]))
+func (cfg *config) toPagePath(from string) string {
+	return from[len(cfg.Source):]
 }
 
-func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
-	ext := filepath.Ext(from)
-	name := filepath.Base(from)
-	name = name[0:len(name)-len(ext)] + ".html"
-	if len(name) > 11 {
-		date, err := time.Parse("2006-01-02-", name[:11])
-		if err == nil {
-			category := ""
-			if v, ok := pageVars["category"]; ok {
-				category, _ = v.(string)
-			}
-			title := name[11:]
-			if v, ok := pageVars["title"]; ok {
-				title, _ = v.(string)
-			}
-			postUrl := cfg.Permalink
-			postUrl = strings.Replace(postUrl, ":categories", category, -1)
-			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
-			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%02d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%02d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			postUrl = strings.Replace(postUrl, ":slug_title", slug.Slug(title), -1)
-			postUrl = strings.Replace(postUrl, ":slug_ascii_title", slug.SlugAscii(title), -1)
-			return filepath.ToSlash(filepath.Join(cfg.Destination, postUrl))
-		}
-	}
-	return filepath.ToSlash(filepath.Join(cfg.Destination, name))
+func (cfg *config) toUrl(path string) string {
+	return join(cfg.Baseurl, path)
+}
+
+func (cfg *config) toPath(path string) string {
+	return filepath.ToSlash(filepath.Join(cfg.Destination, path))
 }
 
 func (cfg *config) convertFile(src, dst string) error {
@@ -211,7 +188,6 @@ func (cfg *config) convertFile(src, dst string) error {
 			return err
 		}
 	}
-	ext := filepath.Ext(src)
 	if isConvertable(src) {
 		if isMarkdown(src) {
 			dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
@@ -231,7 +207,7 @@ func (cfg *config) convertFile(src, dst string) error {
 				vars[k] = v
 			}
 			date := cfg.toDate(src)
-			pageUrl := cfg.toPostUrl(src, pageVars)
+			pageUrl := cfg.toUrl(cfg.toPostPath(src, pageVars))
 			title := str(vars["title"])
 			vars["post"] = map[string]interface{}{
 				"date":  date,
@@ -273,7 +249,6 @@ func (cfg *config) convertFile(src, dst string) error {
 				break
 			}
 			src = filepath.ToSlash(filepath.Join(cfg.Layouts, str(vars["layout"])+".html"))
-			ext = filepath.Ext(src)
 			content = str(vars["content"])
 			vars["content"] = content
 			vars["layout"] = ""
@@ -281,7 +256,7 @@ func (cfg *config) convertFile(src, dst string) error {
 
 		err = ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
 	} else {
-		switch ext {
+		switch filepath.Ext(src) {
 		case ".yml", ".go", ".exe":
 			return nil
 		}
@@ -314,7 +289,7 @@ func (cfg *config) Build() error {
 			if dot != '.' && dot != '_' {
 				vars := map[string]interface{}{}
 				vars["path"] = from
-				vars["url"] = cfg.toPageUrl(from)
+				vars["url"] = cfg.toUrl(filepath.ToSlash(cfg.toPagePath(from)))
 				vars["date"] = info.ModTime()
 				pages = append(pages, vars)
 			}
@@ -346,7 +321,7 @@ func (cfg *config) Build() error {
 			return err
 		}
 		vars["path"] = from
-		vars["url"] = cfg.toPostUrl(from, vars)
+		vars["url"] = cfg.toUrl(cfg.toPostPath(from, vars))
 		vars["date"] = fi.ModTime()
 		if category, ok := vars["category"]; ok {
 			cname := str(category)
@@ -398,7 +373,7 @@ func (cfg *config) Build() error {
 
 	for _, page := range pages {
 		from := page["path"].(string)
-		to := cfg.toPage(from)
+		to := cfg.toPath(cfg.toPagePath(from))
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
 		checkFatal(err)
@@ -406,7 +381,7 @@ func (cfg *config) Build() error {
 
 	for _, post := range posts {
 		from := post["path"].(string)
-		to := cfg.toPost(from, post)
+		to := cfg.toPath(cfg.toPostPath(from, post))
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
 		checkFatal(err)
@@ -457,9 +432,9 @@ func (cfg *config) Serve() error {
 					continue
 				}
 				if filepath.HasPrefix(from, cfg.Posts) {
-					to = cfg.toPost(from, vars)
+					to = cfg.toPath(cfg.toPostPath(from, vars))
 				} else if filepath.HasPrefix(from, cfg.Source) {
-					to = cfg.toPage(from)
+					to = cfg.toPath(cfg.toPagePath(from))
 				}
 				if to != "" {
 					if !fired {
