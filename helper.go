@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/flosch/pongo"
-	"gopkg.in/yaml.v1"
 	"github.com/russross/blackfriday"
+	"gopkg.in/yaml.v1"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -40,7 +40,7 @@ func join(l, r string) string {
 	if !strings.HasSuffix(l, "/") && !strings.HasPrefix(r, "/") {
 		return l + "/" + r
 	}
-	return strings.Replace(l + r, "//", "/", -1)
+	return strings.Replace(l+r, "//", "/", -1)
 }
 
 func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
