@@ -39,18 +39,18 @@ go build
 At the first, create scaffold
 
 ```
-mkdir /path/to/blog
-jedie new /path/to/blog
-cd /path/to/blog
-vim _posts/2013-11-23-welcome-to-jedie.md
-jedie build
+$ mkdir /path/to/blog
+$ jedie new /path/to/blog
+$ cd /path/to/blog
+$ vim _posts/2013-11-23-welcome-to-jedie.md
+$ jedie build
 ```
 
 Then, you can see your site is built in `_site` directory.
 If you want to serve your site with http server:
 
 ```
-jedie serve
+$ jedie serve
 ```
 
 ## Author
