@@ -124,7 +124,7 @@ func pongoSetup() {
 		date, ok := in.Interface().(time.Time)
 		if !ok {
 			return nil, &pongo2.Error{
-				Sender:   "date_to_string",
+				Sender:   "date",
 				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
 			}
 		}
