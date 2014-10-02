@@ -241,21 +241,17 @@ func (cfg *config) convertFile(src, dst string) error {
 				"title": title,
 			}
 			if content != "" {
-				// TODO The variables must be hidden for the each posts/pages?
-				//old := cfg.vars
-				//cfg.vars = vars
-				newvars := pongo2.Context{}
-				newvars.Update(cfg.vars)
-				newvars.Update(vars)
-				newvars["content"] = content
-				tpl, err := pongo2.FromString(str(vars["layout"]))
-				//cfg.vars = old
+				tpl, err := pongo2.FromString(content)
 				if err == nil {
-					updated, err := tpl.Execute(newvars)
-					if err != nil {
+					newvars := pongo2.Context{}
+					newvars.Update(cfg.vars)
+					newvars.Update(vars)
+					output, err := tpl.Execute(newvars)
+					if err == nil && output != "" {
+						content = output
+					} else {
 						return err
 					}
-					content = updated
 				} else {
 					return err
 				}
@@ -478,6 +474,7 @@ func (cfg *config) Serve() error {
 			}
 		}
 	}()
+	fmt.Fprintf(os.Stderr, "Lisning at %s:%d\n", cfg.Host, cfg.Port)
 	return http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port), http.FileServer(http.Dir(cfg.Destination)))
 }
 
