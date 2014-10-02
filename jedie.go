@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/flosch/pongo"
+	"github.com/flosch/pongo2"
 	"github.com/howeyc/fsnotify"
 	"github.com/russross/blackfriday"
-	"io/ioutil"
 	"gopkg.in/yaml.v1"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -25,9 +25,9 @@ type config struct {
 	Includes    string `yaml:"includes"`
 	Layouts     string `yaml:"layouts"`
 	Permalink   string `yaml:"permalink"`
-	Host		string `yaml:"host"`
-	Port		int `yaml:"port"`
-	vars        pongo.Context
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	vars        pongo2.Context
 }
 
 type page struct {
@@ -45,7 +45,7 @@ func (cfg *config) load(file string) error {
 	if err != nil {
 		return err
 	}
-	cfg.vars = pongo.Context{}
+	cfg.vars = pongo2.Context{}
 
 	if cfg.Source == "" {
 		cfg.Source = "."
@@ -65,7 +65,7 @@ func (cfg *config) load(file string) error {
 	if cfg.Layouts == "" {
 		cfg.Layouts = "_layouts"
 	}
-	if cfg.Port <= 0  {
+	if cfg.Port <= 0 {
 		cfg.Port = 4000
 	}
 	if cfg.Permalink == "" {
@@ -111,7 +111,7 @@ func (cfg *config) load(file string) error {
 	cfg.Data = filepath.ToSlash(cfg.Data)
 	cfg.Includes = filepath.ToSlash(cfg.Includes)
 	cfg.Layouts = filepath.ToSlash(cfg.Layouts)
-	cfg.vars["site"] = pongo.Context{}
+	cfg.vars["site"] = pongo2.Context{}
 	return nil
 }
 
@@ -214,7 +214,7 @@ func (cfg *config) convertFile(src, dst string) error {
 			dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
 		}
 
-		vars := pongo.Context{"content": ""}
+		vars := pongo2.Context{"content": ""}
 		for {
 			for k, v := range cfg.vars {
 				vars[k] = v
@@ -241,20 +241,21 @@ func (cfg *config) convertFile(src, dst string) error {
 				"title": title,
 			}
 			if content != "" {
-				ps := new(string)
-				*ps = content
 				// TODO The variables must be hidden for the each posts/pages?
 				//old := cfg.vars
 				//cfg.vars = vars
-				tpl, err := pongo.FromString(str(vars["layout"]), ps, include(cfg, vars))
+				newvars := pongo2.Context{}
+				newvars.Update(cfg.vars)
+				newvars.Update(vars)
+				newvars["content"] = content
+				tpl, err := pongo2.FromString(str(vars["layout"]))
 				//cfg.vars = old
 				if err == nil {
-					output, err := tpl.Execute(&vars)
-					if err == nil && output != nil {
-						content = *output
-					} else {
+					updated, err := tpl.Execute(newvars)
+					if err != nil {
 						return err
 					}
+					content = updated
 				} else {
 					return err
 				}
@@ -320,8 +321,8 @@ func (cfg *config) Build() error {
 	})
 	checkFatal(err)
 
-	categories := pongo.Context{}
-	posts := []pongo.Context{}
+	categories := pongo2.Context{}
+	posts := []pongo2.Context{}
 	err = filepath.Walk(cfg.Posts, func(name string, info os.FileInfo, err error) error {
 		if info == nil || name == cfg.Posts {
 			return err
@@ -333,7 +334,7 @@ func (cfg *config) Build() error {
 		if !isConvertable(from) {
 			return err
 		}
-		vars := pongo.Context{}
+		vars := pongo2.Context{}
 		_, err = parseFile(from, vars)
 		if err != nil {
 			return err
@@ -349,9 +350,9 @@ func (cfg *config) Build() error {
 			cname := str(category)
 			categorizedPosts := categories[cname]
 			if categorizedPosts == nil {
-				categorizedPosts = []pongo.Context{}
+				categorizedPosts = []pongo2.Context{}
 			}
-			categorizedPosts = append(categorizedPosts.([]pongo.Context), vars)
+			categorizedPosts = append(categorizedPosts.([]pongo2.Context), vars)
 			categories[cname] = categorizedPosts
 		} else {
 			posts = append(posts, vars)
@@ -360,12 +361,12 @@ func (cfg *config) Build() error {
 	})
 	checkFatal(err)
 
-	cfg.vars["site"].(pongo.Context)["baseurl"] = cfg.Baseurl
-	cfg.vars["site"].(pongo.Context)["time"] = time.Now()
-	cfg.vars["site"].(pongo.Context)["pages"] = pages
-	cfg.vars["site"].(pongo.Context)["posts"] = posts
-	cfg.vars["site"].(pongo.Context)["categories"] = categories
-	cfg.vars["site"].(pongo.Context)["data"] = pongo.Context{}
+	cfg.vars["site"].(pongo2.Context)["baseurl"] = cfg.Baseurl
+	cfg.vars["site"].(pongo2.Context)["time"] = time.Now()
+	cfg.vars["site"].(pongo2.Context)["pages"] = pages
+	cfg.vars["site"].(pongo2.Context)["posts"] = posts
+	cfg.vars["site"].(pongo2.Context)["categories"] = categories
+	cfg.vars["site"].(pongo2.Context)["data"] = pongo2.Context{}
 
 	fis, err := ioutil.ReadDir(cfg.Data)
 	if err == nil {
@@ -382,7 +383,7 @@ func (cfg *config) Build() error {
 				if err == nil {
 					name := fi.Name()
 					name = name[0 : len(name)-len(ext)]
-					cfg.vars["site"].(pongo.Context)["data"].(pongo.Context)[name] = data
+					cfg.vars["site"].(pongo2.Context)["data"].(pongo2.Context)[name] = data
 				}
 			}
 		}

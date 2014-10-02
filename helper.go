@@ -5,15 +5,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/flosch/pongo"
-	"gopkg.in/yaml.v1"
+	"github.com/flosch/pongo2"
 	"github.com/russross/blackfriday"
+	"gopkg.in/yaml.v1"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -40,21 +38,24 @@ func join(l, r string) string {
 	if !strings.HasSuffix(l, "/") && !strings.HasPrefix(r, "/") {
 		return l + "/" + r
 	}
-	return strings.Replace(l + r, "//", "/", -1)
+	return strings.Replace(l+r, "//", "/", -1)
 }
 
-func include(cfg *config, vars pongo.Context) func(*string) (*string, error) {
-	return func(loc *string) (*string, error) {
+func include(cfg *config, vars pongo2.Context) func(*string) (string, error) {
+	return func(loc *string) (string, error) {
 		inc := filepath.ToSlash(filepath.Join(cfg.Includes, *loc))
-		tpl, err := pongo.FromFile(inc, include(cfg, vars))
+		tpl, err := pongo2.FromFile(inc)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-		return tpl.Execute(&vars)
+		newvars := pongo2.Context{}
+		newvars.Update(cfg.vars)
+		newvars.Update(vars)
+		return tpl.Execute(newvars)
 	}
 }
 
-func parseFile(file string, vars pongo.Context) (string, error) {
+func parseFile(file string, vars pongo2.Context) (string, error) {
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return "", err
@@ -83,155 +84,52 @@ func parseFile(file string, vars pongo.Context) (string, error) {
 }
 
 func pongoSetup() {
-	pongo.Filters["safe"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		return value, nil
-	}
-	pongo.Filters["escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		str, is_str := value.(string)
-		if !is_str {
-			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
-		}
-		return url.QueryEscape(str), nil
-	}
-	pongo.Filters["xml_escape"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		str, is_str := value.(string)
-		if !is_str {
-			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
-		}
+	pongo2.ReplaceFilter("safe", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
+		return in, nil
+	})
+	pongo2.RegisterFilter("xml_escape", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
 		var b bytes.Buffer
-		xml.Escape(&b, []byte(str))
-		return b.String(), nil
-	}
-	pongo.Filters["truncate"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		if len(args) != 1 {
-			return nil, errors.New("Please provide a count of letters")
-		}
-		letters, is_int := args[0].(int)
-		if !is_int {
-			return nil, errors.New(fmt.Sprintf("Limit must be of type int, not %T ('%v')", args[0], args[0]))
-		}
-		str := fmt.Sprint(value)
-		rs := []rune(str)
+		xml.Escape(&b, []byte(in.String()))
+		return pongo2.AsValue(b.String()), nil
+	})
+	pongo2.RegisterFilter("truncate", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
+		rs := []rune(in.String())
+		letters := param.Integer()
 		if letters > len(rs) {
 			letters = len(rs)
 		}
-		return string(rs[:letters]), nil
-	}
-	pongo.Filters["strip_html"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		str, is_str := value.(string)
-		if !is_str {
-			return nil, errors.New(fmt.Sprintf("%v (%T) is not of type string", value, value))
-		}
-		return regexp.MustCompile("<[^>]+>").ReplaceAllString(str, ""), nil
-	}
-	pongo.Filters["date_to_string"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		date, ok := value.(time.Time)
+		return pongo2.AsValue(string(rs[:letters])), nil
+	})
+	pongo2.RegisterFilter("strip_html", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
+		return pongo2.AsValue(regexp.MustCompile("<[^>]+>").ReplaceAllString(in.String(), "")), nil
+	})
+	pongo2.RegisterFilter("date_to_string", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
+		date, ok := in.Interface().(time.Time)
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("Date must be of type time.Time not %T ('%v')", value, value))
+			return nil, errors.New(fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in))
 		}
-		return date.Format("2006/01/02 03:04:05"), nil
-	}
-	pongo.Filters["date"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		if len(args) != 1 {
-			return nil, errors.New("Please provide a count of limit")
-		}
-		format, is_string := args[0].(string)
-		if !is_string {
-			return nil, errors.New(fmt.Sprintf("Format must be of type string, not %T ('%v')", args[0], args[0]))
-		}
-
-		var err error
-		date, ok := value.(time.Time)
-		if !ok {
-			datestr, ok := value.(string)
-			if !ok {
-				return nil, errors.New(fmt.Sprintf("Date must be of type time.Time or string, not %T ('%v')", value, value))
-			}
-			date, err = time.Parse(format, datestr)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		replacements := []struct {
-			from string
-			to   string
-		}{
-			{"%a", "Mon"},
-			{"%A", "Monday"},
-			{"%b", "Jan"},
-			{"%B", "January"},
-			{"%c", time.RFC3339},
-			{"%C", "06"},
-			{"%d", "02"},
-			{"%C", "01/02/06"},
-			{"%e", "_1/_2/_6"},
-			// {"%E", ""},
-			{"%F", "06-01-02"},
-			// {"%G", ""},
-			// {"%g", ""},
-			{"%h", "Jan"},
-			{"%H", "15"},
-			{"%I", "03"},
-			// {"%j", ""},
-			{"%k", "3"},
-			{"%l", "_3"},
-			{"%m", "01"},
-			{"%M", "04"},
-			{"%n", "\n"},
-			// {"%O", ""},
-			{"%p", "PM"},
-			{"%P", "pm"},
-			{"%r", "03:04:05 PM"},
-			{"%R", "03:04"},
-			// {"%s", ""},
-			{"%S", "05"},
-			{"%t", "\t"},
-			{"%T", "15:04:05"},
-			// {"%u", ""},
-			// {"%U", ""},
-			// {"%V", ""},
-			// {"%W", ""},
-			// {"%x", ""},
-			// {"%X", ""},
-			{"%y", "06"},
-			{"%Y", "2006"},
-			{"%z", "-0700"},
-			{"%Z", "MST"},
-			// {"%+", ""},
-			{"%%", "%"},
-		}
-
-		for _, replacement := range replacements {
-			format = strings.Replace(format, replacement.from, replacement.to, -1)
-		}
-
-		return date.Format(format), nil
-	}
-	pongo.Filters["limit"] = func(value interface{}, args []interface{}, ctx *pongo.FilterChainContext) (interface{}, error) {
-		if len(args) != 1 {
-			return nil, errors.New("Please provide a count of limit")
-		}
-		limit, is_int := args[0].(int)
-		if !is_int {
-			return nil, errors.New(fmt.Sprintf("Limit must be of type int, not %T ('%v')", args[0], args[0]))
-		}
-
-		rv := reflect.ValueOf(value)
-		switch rv.Kind() {
-		case reflect.Slice, reflect.Array:
-			l := rv.Len()
+		return pongo2.AsValue(date.Format("2006/01/02 03:04:05")), nil
+	})
+	pongo2.RegisterFilter("limit", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err error) {
+		limit := param.Integer()
+		switch {
+		case in.CanSlice():
+			l := in.Len()
 			if l < limit {
 				limit = l
 			}
-			return rv.Slice(0, l).Interface(), nil
-		case reflect.String:
-			return value, nil
+			return in.Slice(0, l), nil
+		case in.IsString():
+			l := in.Len()
+			if l < limit {
+				limit = l
+			}
+			return pongo2.AsValue(in.String()[:l]), nil
 		default:
-			return nil, errors.New(fmt.Sprintf("Cannot join variable of type %T ('%v').", value, value))
+			return nil, errors.New(fmt.Sprintf("Cannot join variable of type %T ('%v').", in, in))
 		}
 		panic("unreachable")
-	}
+	})
 }
 
 func copyFile(src, dst string) (int64, error) {
