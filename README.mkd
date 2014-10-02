@@ -27,7 +27,7 @@ Get dependencies at first.
 ```
 git clone https://github.com/mattn/jedie
 cd jedie
-go get github.com/flosch/pongo
+go get github.com/flosch/pongo2
 go get github.com/howeyc/fsnotify
 go get github.com/russross/blackfriday
 go get gopkg.in/yaml.v1
