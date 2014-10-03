@@ -20,6 +20,7 @@ import (
 type config struct {
 	Baseurl     string `yaml:"baseurl"`
 	Source      string `yaml:"source"`
+	Title       string `yaml:"title"`
 	Destination string `yaml:"destination"`
 	Posts       string `yaml:"posts"`
 	Data        string `yaml:"data"`
@@ -362,6 +363,7 @@ func (cfg *config) Build() error {
 	})
 	checkFatal(err)
 
+	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
 	cfg.vars["site"].(pongo2.Context)["baseurl"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["time"] = time.Now()
 	cfg.vars["site"].(pongo2.Context)["pages"] = pages
