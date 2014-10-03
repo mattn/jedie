@@ -30,16 +30,6 @@ func str(s interface{}) string {
 	return ""
 }
 
-func join(l, r string) string {
-	if strings.HasSuffix(l, "/") && strings.HasPrefix(r, "/") {
-		return l + r[1:]
-	}
-	if !strings.HasSuffix(l, "/") && !strings.HasPrefix(r, "/") {
-		return l + "/" + r
-	}
-	return strings.Replace(l+r, "//", "/", -1)
-}
-
 func include(cfg *config, vars pongo2.Context) func(*string) (string, error) {
 	return func(loc *string) (string, error) {
 		inc := filepath.ToSlash(filepath.Join(cfg.Includes, *loc))

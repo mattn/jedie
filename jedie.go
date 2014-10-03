@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -116,7 +117,7 @@ func (cfg *config) load(file string) error {
 }
 
 func (cfg *config) toPageUrl(from string) string {
-	return join(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
+	return path.Join(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
 }
 
 func (cfg *config) toDate(from string) time.Time {
@@ -160,10 +161,10 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			return join(cfg.Baseurl, postUrl)
+			return path.Join(cfg.Baseurl, postUrl)
 		}
 	}
-	return join(cfg.Baseurl, name)
+	return path.Join(cfg.Baseurl, name)
 }
 
 func (cfg *config) toPage(from string) string {
@@ -197,7 +198,7 @@ func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			return filepath.ToSlash(filepath.Join(cfg.Destination, postUrl))
+			return filepath.ToSlash(filepath.Clean(filepath.Join(cfg.Destination, postUrl)))
 		}
 	}
 	return filepath.ToSlash(filepath.Join(cfg.Destination, name))
