@@ -139,7 +139,7 @@ func (cfg *config) toDate(from string) time.Time {
 func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
-	name = name[0:len(name)-len(ext)] + ".html"
+	name = name[0:len(name)-len(ext)]
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
@@ -164,7 +164,7 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			return path.Join(cfg.Baseurl, postUrl)
 		}
 	}
-	return path.Join(cfg.Baseurl, name)
+	return path.Join(cfg.Baseurl, name + ".html")
 }
 
 func (cfg *config) toPage(from string) string {
@@ -176,7 +176,7 @@ func (cfg *config) toPage(from string) string {
 func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
-	name = name[0:len(name)-len(ext)] + ".html"
+	name = name[0:len(name)-len(ext)]
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
