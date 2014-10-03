@@ -364,6 +364,7 @@ func (cfg *config) Build() error {
 	checkFatal(err)
 
 	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
+	cfg.vars["site"].(pongo2.Context)["url"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["baseurl"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["time"] = time.Now()
 	cfg.vars["site"].(pongo2.Context)["pages"] = pages
