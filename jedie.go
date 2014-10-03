@@ -147,9 +147,11 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 				category, _ = v.(string)
 			}
 			title := name[11:]
+			/*
 			if v, ok := pageVars["title"]; ok {
 				title, _ = v.(string)
 			}
+			*/
 			postUrl := cfg.Permalink
 			postUrl = strings.Replace(postUrl, ":categories", category, -1)
 			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
@@ -182,9 +184,11 @@ func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 				category, _ = v.(string)
 			}
 			title := name[11:]
+			/*
 			if v, ok := pageVars["title"]; ok {
 				title, _ = v.(string)
 			}
+			*/
 			postUrl := cfg.Permalink
 			postUrl = strings.Replace(postUrl, ":categories", category, -1)
 			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
