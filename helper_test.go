@@ -25,26 +25,6 @@ func TestSTR(t *testing.T) {
 	}
 }
 
-func TestJOIN(t *testing.T) {
-	tests := []struct {
-		left  string
-		right string
-		out   string
-	}{
-		{"Dude", "Dude", "Dude/Dude"},
-		{"/Dude", "/Dude", "/Dude/Dude"},
-		{"/Dude", "Dude", "/Dude/Dude"},
-		{"Dude/", "/Dude", "Dude/Dude"},
-	}
-
-	for _, test := range tests {
-		actual := join(test.left, test.right)
-		if actual != test.out {
-			t.Errorf("expected %s actual %s", test.out, actual)
-		}
-	}
-}
-
 func TestCopyFile(t *testing.T) {
 	inFile, err := ioutil.TempFile(".", "dude")
 
