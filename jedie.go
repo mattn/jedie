@@ -50,7 +50,7 @@ func (p Posts) Swap(i, j int) {
 
 type page struct {
 	path string
-	vars map[string]interface{}
+	vars pongo2.Context
 }
 
 func (cfg *config) load(file string) error {
@@ -153,7 +153,7 @@ func (cfg *config) toDate(from string) time.Time {
 	return date
 }
 
-func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) string {
+func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
 	name = name[0 : len(name)-len(ext)]
@@ -190,7 +190,7 @@ func (cfg *config) toPage(from string) string {
 	return filepath.ToSlash(filepath.Join(cfg.Destination, from[len(cfg.Source):]))
 }
 
-func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
+func (cfg *config) toPost(from string, pageVars pongo2.Context) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
 	name = name[0 : len(name)-len(ext)]
@@ -241,7 +241,7 @@ func (cfg *config) convertFile(src, dst string) error {
 			for k, v := range cfg.vars {
 				vars[k] = v
 			}
-			pageVars := map[string]interface{}{}
+			pageVars := pongo2.Context{}
 			content, err := parseFile(src, pageVars)
 			if err != nil {
 				return err
@@ -292,6 +292,8 @@ func (cfg *config) convertFile(src, dst string) error {
 			ext = filepath.Ext(src)
 			content = str(vars["content"])
 			vars["content"] = content
+			vars["post"].(pongo2.Context)["content"] = content
+			vars["page"].(pongo2.Context)["content"] = content
 			vars["layout"] = ""
 		}
 
@@ -314,7 +316,7 @@ func (cfg *config) Build() error {
 	pongoSetup()
 
 	var err error
-	pages := []map[string]interface{}{}
+	pages := []pongo2.Context{}
 	err = filepath.Walk(cfg.Source, func(name string, info os.FileInfo, err error) error {
 		if info == nil || name == cfg.Source {
 			return err
@@ -328,7 +330,7 @@ func (cfg *config) Build() error {
 			}
 		} else {
 			if dot != '.' && dot != '_' {
-				vars := map[string]interface{}{}
+				vars := pongo2.Context{}
 				vars["path"] = from
 				vars["url"] = cfg.toPageUrl(from)
 				vars["date"] = info.ModTime()
@@ -353,7 +355,7 @@ func (cfg *config) Build() error {
 			return err
 		}
 		vars := pongo2.Context{}
-		_, err = parseFile(from, vars)
+		content, err := parseFile(from, vars)
 		if err != nil {
 			return err
 		}
@@ -364,6 +366,7 @@ func (cfg *config) Build() error {
 		vars["path"] = from
 		vars["url"] = cfg.toPostUrl(from, vars)
 		vars["date"] = cfg.toDate(from)
+		vars["content"] = content
 		if category, ok := vars["category"]; ok {
 			cname := str(category)
 			categorizedPosts := categories[cname]
@@ -372,9 +375,8 @@ func (cfg *config) Build() error {
 			}
 			categorizedPosts = append(categorizedPosts.([]pongo2.Context), vars)
 			categories[cname] = categorizedPosts
-		} else {
-			posts = append(posts, vars)
 		}
+		posts = append(posts, vars)
 		return err
 	})
 	checkFatal(err)
@@ -474,7 +476,7 @@ func (cfg *config) Serve() error {
 				}
 				to := ""
 
-				vars := map[string]interface{}{}
+				vars := pongo2.Context{}
 				_, err = parseFile(from, vars)
 				if err != nil {
 					continue
