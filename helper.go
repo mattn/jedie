@@ -100,6 +100,9 @@ func pongoSetup() {
 	pongo2.RegisterFilter("strip_html", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
 		return pongo2.AsValue(regexp.MustCompile("<[^>]+>").ReplaceAllString(in.String(), "")), nil
 	})
+	pongo2.RegisterFilter("strip_newlines", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		return pongo2.AsValue(strings.Replace(in.String(), "\n", "", -1)), nil
+	})
 	pongo2.RegisterFilter("date_to_string", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
 		date, ok := in.Interface().(time.Time)
 		if !ok {
