@@ -382,6 +382,10 @@ func (cfg *config) Build() error {
 	checkFatal(err)
 
 	sort.Sort(sort.Reverse(Posts(posts)))
+	for _, category := range categories {
+		sort.Sort(sort.Reverse(Posts(category.([]pongo2.Context))))
+	}
+
 	if cfg.LimitPosts > 0 && len(posts) > cfg.LimitPosts {
 		posts = posts[:cfg.LimitPosts]
 	}
