@@ -249,19 +249,8 @@ func (cfg *config) convertFile(src, dst string) error {
 				vars[k] = v
 			}
 			date := cfg.toDate(src)
-			fmt.Println(src, date)
 			pageUrl := cfg.toPostUrl(src, pageVars)
 			title := str(vars["title"])
-			vars["post"] = pongo2.Context{
-				"date":  date,
-				"url":   pageUrl,
-				"title": title,
-			}
-			vars["page"] = pongo2.Context {
-				"date":  date,
-				"url":   pageUrl,
-				"title": title,
-			}
 			if content != "" {
 				tpl, err := pongo2.FromString(content)
 				if err == nil {
@@ -277,6 +266,16 @@ func (cfg *config) convertFile(src, dst string) error {
 				} else {
 					return err
 				}
+			}
+			vars["post"] = pongo2.Context{
+				"date":  date,
+				"url":   pageUrl,
+				"title": title,
+			}
+			vars["page"] = pongo2.Context {
+				"date":  date,
+				"url":   pageUrl,
+				"title": title,
 			}
 
 			if isMarkdown(src) {
