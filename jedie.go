@@ -41,7 +41,7 @@ func (p Posts) Len() int {
 }
 
 func (p Posts) Less(i, j int) bool {
-	return str(p[i]["path"]) < str(p[j]["path"])
+	return p[i]["date"].(time.Time).UnixNano() < p[j]["date"].(time.Time).UnixNano()
 }
 
 func (p Posts) Swap(i, j int) {
@@ -385,6 +385,7 @@ func (cfg *config) Build() error {
 	for _, category := range categories {
 		sort.Sort(sort.Reverse(Posts(category.([]pongo2.Context))))
 	}
+	sort.Sort(sort.Reverse(Posts(pages)))
 
 	if cfg.LimitPosts > 0 && len(posts) > cfg.LimitPosts {
 		posts = posts[:cfg.LimitPosts]
