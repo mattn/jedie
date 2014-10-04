@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -30,6 +31,20 @@ type config struct {
 	Host        string `yaml:"host"`
 	Port        int    `yaml:"port"`
 	vars        pongo2.Context
+}
+
+type Posts []pongo2.Context
+
+func (p Posts) Len() int {
+	return len(p)
+}
+
+func (p Posts) Less(i, j int) bool {
+	return str(p[i]["path"]) < str(p[j]["path"])
+}
+
+func (p Posts) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
 
 type page struct {
@@ -234,14 +249,15 @@ func (cfg *config) convertFile(src, dst string) error {
 				vars[k] = v
 			}
 			date := cfg.toDate(src)
+			fmt.Println(src, date)
 			pageUrl := cfg.toPostUrl(src, pageVars)
 			title := str(vars["title"])
-			vars["post"] = map[string]interface{}{
+			vars["post"] = pongo2.Context{
 				"date":  date,
 				"url":   pageUrl,
 				"title": title,
 			}
-			vars["page"] = map[string]interface{}{
+			vars["page"] = pongo2.Context {
 				"date":  date,
 				"url":   pageUrl,
 				"title": title,
@@ -341,13 +357,13 @@ func (cfg *config) Build() error {
 		if err != nil {
 			return err
 		}
-		fi, err := os.Stat(from)
+		_, err = os.Stat(from)
 		if err != nil {
 			return err
 		}
 		vars["path"] = from
 		vars["url"] = cfg.toPostUrl(from, vars)
-		vars["date"] = fi.ModTime()
+		vars["date"] = cfg.toDate(from)
 		if category, ok := vars["category"]; ok {
 			cname := str(category)
 			categorizedPosts := categories[cname]
@@ -362,6 +378,8 @@ func (cfg *config) Build() error {
 		return err
 	})
 	checkFatal(err)
+
+	sort.Sort(sort.Reverse(Posts(posts)))
 
 	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
 	cfg.vars["site"].(pongo2.Context)["url"] = cfg.Baseurl
