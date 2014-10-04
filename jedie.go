@@ -30,6 +30,7 @@ type config struct {
 	Permalink   string `yaml:"permalink"`
 	Host        string `yaml:"host"`
 	Port        int    `yaml:"port"`
+	LimitPosts  int    `yaml:limit_posts`
 	vars        pongo2.Context
 }
 
@@ -155,7 +156,7 @@ func (cfg *config) toDate(from string) time.Time {
 func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
-	name = name[0:len(name)-len(ext)]
+	name = name[0 : len(name)-len(ext)]
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
@@ -165,9 +166,9 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			}
 			title := name[11:]
 			/*
-			if v, ok := pageVars["title"]; ok {
-				title, _ = v.(string)
-			}
+				if v, ok := pageVars["title"]; ok {
+					title, _ = v.(string)
+				}
 			*/
 			postUrl := cfg.Permalink
 			postUrl = strings.Replace(postUrl, ":categories", category, -1)
@@ -180,7 +181,7 @@ func (cfg *config) toPostUrl(from string, pageVars map[string]interface{}) strin
 			return path.Join(cfg.Baseurl, postUrl)
 		}
 	}
-	return path.Join(cfg.Baseurl, name + ".html")
+	return path.Join(cfg.Baseurl, name+".html")
 }
 
 func (cfg *config) toPage(from string) string {
@@ -192,7 +193,7 @@ func (cfg *config) toPage(from string) string {
 func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
-	name = name[0:len(name)-len(ext)]
+	name = name[0 : len(name)-len(ext)]
 	if len(name) > 11 {
 		date, err := time.Parse("2006-01-02-", name[:11])
 		if err == nil {
@@ -202,9 +203,9 @@ func (cfg *config) toPost(from string, pageVars map[string]interface{}) string {
 			}
 			title := name[11:]
 			/*
-			if v, ok := pageVars["title"]; ok {
-				title, _ = v.(string)
-			}
+				if v, ok := pageVars["title"]; ok {
+					title, _ = v.(string)
+				}
 			*/
 			postUrl := cfg.Permalink
 			postUrl = strings.Replace(postUrl, ":categories", category, -1)
@@ -272,7 +273,7 @@ func (cfg *config) convertFile(src, dst string) error {
 				"url":   pageUrl,
 				"title": title,
 			}
-			vars["page"] = pongo2.Context {
+			vars["page"] = pongo2.Context{
 				"date":  date,
 				"url":   pageUrl,
 				"title": title,
@@ -379,6 +380,9 @@ func (cfg *config) Build() error {
 	checkFatal(err)
 
 	sort.Sort(sort.Reverse(Posts(posts)))
+	if cfg.LimitPosts > 0 && len(posts) > cfg.LimitPosts {
+		posts = posts[:cfg.LimitPosts]
+	}
 
 	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
 	cfg.vars["site"].(pongo2.Context)["url"] = cfg.Baseurl
