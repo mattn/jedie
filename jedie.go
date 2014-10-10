@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/flosch/pongo2"
@@ -11,26 +12,31 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 )
 
 type config struct {
-	Baseurl     string `yaml:"baseurl"`
-	Source      string `yaml:"source"`
-	Title       string `yaml:"title"`
-	Destination string `yaml:"destination"`
-	Posts       string `yaml:"posts"`
-	Data        string `yaml:"data"`
-	Includes    string `yaml:"includes"`
-	Layouts     string `yaml:"layouts"`
-	Permalink   string `yaml:"permalink"`
-	Host        string `yaml:"host"`
-	Port        int    `yaml:"port"`
-	LimitPosts  int    `yaml:limit_posts`
+	Baseurl     string                       `yaml:"baseurl"`
+	Source      string                       `yaml:"source"`
+	Title       string                       `yaml:"title"`
+	Destination string                       `yaml:"destination"`
+	Posts       string                       `yaml:"posts"`
+	Data        string                       `yaml:"data"`
+	Includes    string                       `yaml:"includes"`
+	Layouts     string                       `yaml:"layouts"`
+	Permalink   string                       `yaml:"permalink"`
+	Host        string                       `yaml:"host"`
+	Port        int                          `yaml:"port"`
+	LimitPosts  int                          `yaml:limit_posts`
+	MarkdownExt string                       `yaml:markdown_ext`
+	Conversion  map[string]map[string]string `yaml:conversion`
 	vars        pongo2.Context
 }
 
@@ -231,81 +237,124 @@ func (cfg *config) convertFile(src, dst string) error {
 		}
 	}
 	ext := filepath.Ext(src)
-	if isConvertable(src) {
-		if isMarkdown(src) {
-			dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
-		}
-
-		vars := pongo2.Context{"content": ""}
-		for {
-			for k, v := range cfg.vars {
-				vars[k] = v
-			}
-			pageVars := pongo2.Context{}
-			content, err := parseFile(src, pageVars)
-			if err != nil {
-				return err
-			}
-			for k, v := range pageVars {
-				vars[k] = v
-			}
-			date := cfg.toDate(src)
-			pageUrl := cfg.toPostUrl(src, pageVars)
-			title := str(vars["title"])
-			if content != "" {
-				tpl, err := pongo2.FromString(content)
-				if err == nil {
-					newvars := pongo2.Context{}
-					newvars.Update(cfg.vars)
-					newvars.Update(vars)
-					output, err := tpl.Execute(newvars)
-					if err == nil && output != "" {
-						content = output
-					} else {
-						return err
-					}
-				} else {
-					return err
-				}
-			}
-			vars["post"] = pongo2.Context{
-				"date":  date,
-				"url":   pageUrl,
-				"title": title,
-			}
-			vars["page"] = pongo2.Context{
-				"date":  date,
-				"url":   pageUrl,
-				"title": title,
-			}
-
-			if isMarkdown(src) {
-				renderer := blackfriday.HtmlRenderer(0, "", "")
-				vars["content"] = string(blackfriday.Markdown([]byte(content), renderer, extensions))
-			} else {
-				vars["content"] = content
-			}
-			if str(vars["layout"]) == "" || str(vars["layout"]) == "nil" {
-				break
-			}
-			src = filepath.ToSlash(filepath.Join(cfg.Layouts, str(vars["layout"])+".html"))
-			ext = filepath.Ext(src)
-			content = str(vars["content"])
-			vars["content"] = content
-			vars["post"].(pongo2.Context)["content"] = content
-			vars["page"].(pongo2.Context)["content"] = content
-			vars["layout"] = ""
-		}
-
-		err = ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
-	} else {
+	if !cfg.isConvertable(src) {
 		switch ext {
 		case ".yml", ".go", ".exe":
 			return nil
 		}
 		_, err = copyFile(src, dst)
+		return err
 	}
-	return err
+
+	for k, v := range cfg.Conversion {
+		if ext != "." +k {
+			continue
+		}
+		if v == nil {
+			continue
+		}
+		if _, ok := v["ext"]; !ok {
+			continue
+		}
+		if _, ok := v["command"]; !ok {
+			continue
+		}
+
+		dst = dst[0:len(dst)-len(filepath.Ext(dst))] + "." + v["ext"]
+
+		fmt.Println(src, "=>", dst)
+		tpl, err := template.New("command").Parse(v["command"])
+		if err != nil {
+			log.Println("Error:", err)
+			continue
+		}
+		var buf bytes.Buffer
+		err = tpl.Execute(&buf, cfg)
+		if err != nil {
+			log.Println("Error:", err)
+			continue
+		}
+		var cmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd", "/c", buf.String())
+		} else {
+			cmd = exec.Command("sh", "-c", buf.String())
+		}
+		b, err := cmd.Output()
+		if err != nil {
+			log.Println("Error:", err)
+			continue
+		}
+
+		return ioutil.WriteFile(dst, b, 0644)
+	}
+
+	if cfg.isMarkdown(src) {
+		dst = dst[0:len(dst)-len(filepath.Ext(dst))] + ".html"
+	}
+
+	vars := pongo2.Context{"content": ""}
+	for {
+		for k, v := range cfg.vars {
+			vars[k] = v
+		}
+		pageVars := pongo2.Context{}
+		content, err := cfg.parseFile(src, pageVars)
+		if err != nil {
+			return err
+		}
+		for k, v := range pageVars {
+			vars[k] = v
+		}
+		date := cfg.toDate(src)
+		pageUrl := cfg.toPostUrl(src, pageVars)
+		title := str(vars["title"])
+		if content != "" {
+			tpl, err := pongo2.FromString(content)
+			if err == nil {
+				newvars := pongo2.Context{}
+				newvars.Update(cfg.vars)
+				newvars.Update(vars)
+				output, err := tpl.Execute(newvars)
+				if err == nil && output != "" {
+					content = output
+				} else {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+		vars["post"] = pongo2.Context{
+			"date":  date,
+			"url":   pageUrl,
+			"title": title,
+		}
+		vars["page"] = pongo2.Context{
+			"date":  date,
+			"url":   pageUrl,
+			"title": title,
+		}
+
+		if cfg.isMarkdown(src) {
+			renderer := blackfriday.HtmlRenderer(0, "", "")
+			vars["content"] = string(blackfriday.Markdown([]byte(content), renderer, extensions))
+		} else {
+			vars["content"] = content
+		}
+		if str(vars["layout"]) == "" || str(vars["layout"]) == "nil" {
+			break
+		}
+		src = filepath.ToSlash(filepath.Join(cfg.Layouts, str(vars["layout"])+".html"))
+		ext = filepath.Ext(src)
+		content = str(vars["content"])
+		vars["content"] = content
+		vars["post"].(pongo2.Context)["content"] = content
+		vars["page"].(pongo2.Context)["content"] = content
+		vars["layout"] = ""
+	}
+
+	return ioutil.WriteFile(dst, []byte(str(vars["content"])), 0644)
 }
 
 func (cfg *config) New(p string) error {
@@ -351,11 +400,11 @@ func (cfg *config) Build() error {
 			return err
 		}
 		from := filepath.ToSlash(name)
-		if !isConvertable(from) {
+		if !cfg.isConvertable(from) {
 			return err
 		}
 		vars := pongo2.Context{}
-		content, err := parseFile(from, vars)
+		content, err := cfg.parseFile(from, vars)
 		if err != nil {
 			return err
 		}
@@ -482,7 +531,7 @@ func (cfg *config) Serve() error {
 				to := ""
 
 				vars := pongo2.Context{}
-				_, err = parseFile(from, vars)
+				_, err = cfg.parseFile(from, vars)
 				if err != nil {
 					continue
 				}
@@ -512,6 +561,71 @@ func (cfg *config) Serve() error {
 	}()
 	fmt.Fprintf(os.Stderr, "Lisning at %s:%d\n", cfg.Host, cfg.Port)
 	return http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port), http.FileServer(http.Dir(cfg.Destination)))
+}
+
+func (cfg *config) parseFile(file string, vars pongo2.Context) (string, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	content := string(b)
+	lines := strings.Split(content, "\n")
+	if len(lines) > 2 && lines[0] == "---" {
+		var n int
+		var line string
+		for n, line = range lines[1:] {
+			if line == "---" {
+				break
+			}
+		}
+		err = yaml.Unmarshal(b, &vars)
+		if err != nil {
+			return "", err
+		}
+		content = strings.Join(lines[n+2:], "\n")
+	} else if cfg.isMarkdown(file) {
+		vars["title"] = ""
+		vars["layout"] = "plain"
+		vars["date"] = ""
+	}
+	return content, nil
+}
+
+func (cfg *config) isMarkdown(src string) bool {
+	ext := filepath.Ext(src)
+	if ext == "" {
+		return false
+	}
+	if cfg.MarkdownExt != "" {
+		for _, v := range strings.Split(cfg.MarkdownExt, ",") {
+			if ext == "."+v {
+				return true
+			}
+		}
+		return false
+	}
+	switch ext {
+	case ".md", ".mkd", ".markdown":
+		return true
+	}
+	return false
+}
+
+func (cfg *config) isConvertable(src string) bool {
+	if cfg.isMarkdown(src) {
+		return true
+	}
+	ext := filepath.Ext(src)
+	switch ext {
+	case ".html", ".xml":
+		return true
+	}
+	for k := range cfg.Conversion {
+		if ext == "."+k {
+			return true
+		}
+	}
+	return false
 }
 
 func checkFatal(err error) {

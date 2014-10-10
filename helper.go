@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/flosch/pongo2"
 	"github.com/russross/blackfriday"
-	"gopkg.in/yaml.v1"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -42,34 +40,6 @@ func include(cfg *config, vars pongo2.Context) func(*string) (string, error) {
 		newvars.Update(vars)
 		return tpl.Execute(newvars)
 	}
-}
-
-func parseFile(file string, vars pongo2.Context) (string, error) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return "", err
-	}
-	content := string(b)
-	lines := strings.Split(content, "\n")
-	if len(lines) > 2 && lines[0] == "---" {
-		var n int
-		var line string
-		for n, line = range lines[1:] {
-			if line == "---" {
-				break
-			}
-		}
-		err = yaml.Unmarshal(b, &vars)
-		if err != nil {
-			return "", err
-		}
-		content = strings.Join(lines[n+2:], "\n")
-	} else if isMarkdown(file) {
-		vars["title"] = ""
-		vars["layout"] = "plain"
-		vars["date"] = ""
-	}
-	return content, nil
 }
 
 func pongoSetup() {
@@ -215,22 +185,4 @@ func copyFile(src, dst string) (int64, error) {
 	}
 	defer df.Close()
 	return io.Copy(df, sf)
-}
-
-func isMarkdown(src string) bool {
-	ext := filepath.Ext(src)
-	switch ext {
-	case ".md", ".mkd", ".markdown":
-		return true
-	}
-	return false
-}
-
-func isConvertable(src string) bool {
-	ext := filepath.Ext(src)
-	switch ext {
-	case ".html", ".xml", ".md", ".mkd", ".markdown":
-		return true
-	}
-	return false
 }
