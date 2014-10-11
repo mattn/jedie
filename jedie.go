@@ -272,7 +272,7 @@ func (cfg *config) convertFile(src, dst string) error {
 		var vars pongo2.Context
 		vars["from"] = src
 		vars["to"] = dst
-		err = tpl.Execute(&buf, cfg)
+		err = tpl.Execute(&buf, vars)
 		if err != nil {
 			log.Println("Error:", err)
 			continue
