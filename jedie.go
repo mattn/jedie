@@ -251,6 +251,10 @@ func (cfg *config) convertFile(src, dst string) error {
 		if v == nil {
 			continue
 		}
+		if _, ok := v["ext"]; !ok {
+			continue
+		}
+
 		if _, ok := v["command"]; !ok {
 			continue
 		}
