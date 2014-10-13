@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"github.com/flosch/pongo2"
@@ -18,7 +17,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"text/template"
 	"time"
 )
 
@@ -253,43 +251,33 @@ func (cfg *config) convertFile(src, dst string) error {
 		if v == nil {
 			continue
 		}
-		if _, ok := v["ext"]; !ok {
-			continue
-		}
 		if _, ok := v["command"]; !ok {
 			continue
 		}
 
 		dst = dst[0:len(dst)-len(filepath.Ext(dst))] + "." + v["ext"]
 
-		fmt.Println(src, "=>", dst)
-		tpl, err := template.New("command").Parse(v["command"])
-		if err != nil {
-			log.Println("Error:", err)
+		tpl, perr := pongo2.FromString(v["command"])
+		if perr != nil {
+			log.Println("Error:", perr)
 			continue
 		}
-		var buf bytes.Buffer
-		var vars pongo2.Context
+		vars := pongo2.Context{}
 		vars["from"] = src
 		vars["to"] = dst
-		err = tpl.Execute(&buf, vars)
-		if err != nil {
-			log.Println("Error:", err)
+		command, perr := tpl.Execute(vars)
+		if perr != nil {
+			log.Println("Error:", perr)
 			continue
 		}
 		var cmd *exec.Cmd
+		log.Println("converting:", command)
 		if runtime.GOOS == "windows" {
-			cmd = exec.Command("cmd", "/c", buf.String())
+			cmd = exec.Command("cmd", "/c", command)
 		} else {
-			cmd = exec.Command("sh", "-c", buf.String())
+			cmd = exec.Command("sh", "-c", command)
 		}
-		b, err := cmd.Output()
-		if err != nil {
-			log.Println("Error:", err)
-			continue
-		}
-
-		return ioutil.WriteFile(dst, b, 0644)
+		return cmd.Run()
 	}
 
 	if cfg.isMarkdown(src) {
