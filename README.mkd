@@ -53,6 +53,17 @@ If you want to serve your site with http server:
 $ jedie serve
 ```
 
+## Configuration
+
+For example, you can do your specified conversion like below.
+
+```yaml
+conversion:
+  js:
+    ext: js
+    command: minifyjs -m -i {{from}} -o {{to}}
+```
+
 ## Author
 
 Yasuhiro Matsumoto (a.k.a mattn)
