@@ -219,6 +219,9 @@ func (cfg *config) toPost(from string, pageVars pongo2.Context) string {
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
+			if cfg.Permalink[len(cfg.Permalink)-1:len(cfg.Permalink)] == "/" {
+				postUrl += "/index"
+			}
 			return filepath.ToSlash(filepath.Clean(filepath.Join(cfg.Destination, postUrl)))
 		}
 	}
