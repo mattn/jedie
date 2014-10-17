@@ -26,7 +26,7 @@ func TestSTR(t *testing.T) {
 }
 
 func TestCopyFile(t *testing.T) {
-	inFile, err := ioutil.TempFile(".", "dude")
+	inFile, err := ioutil.TempFile(os.TempDir(), "dude")
 
 	if err != nil {
 		panic(err)
@@ -53,7 +53,7 @@ func TestCopyFileErr(t *testing.T) {
 		t.Errorf("expected copyfile to return nil")
 	}
 
-	inFile, err := ioutil.TempFile(".", "dude")
+	inFile, err := ioutil.TempFile(os.TempDir(), "dude")
 
 	if err != nil {
 		panic(err)
