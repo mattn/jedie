@@ -23,7 +23,7 @@ import (
 type config struct {
 	Baseurl     string                       `yaml:"baseurl"`
 	Source      string                       `yaml:"source"`
-	Title       string                       `yaml:"title"`
+	Name        string                       `yaml:"name"`
 	Destination string                       `yaml:"destination"`
 	Posts       string                       `yaml:"posts"`
 	Data        string                       `yaml:"data"`
@@ -438,7 +438,8 @@ func (cfg *config) Build() error {
 		posts = posts[:cfg.LimitPosts]
 	}
 
-	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
+	cfg.vars["site"].(pongo2.Context)["name"] = cfg.Name
+	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Name
 	cfg.vars["site"].(pongo2.Context)["url"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["baseurl"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["time"] = time.Now()
