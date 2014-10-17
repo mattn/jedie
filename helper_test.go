@@ -80,8 +80,9 @@ func TestIsMarkdown(t *testing.T) {
 		{"dude.dude", false},
 	}
 
+	cfg := config{}
 	for _, test := range tests {
-		actual := isMarkdown(test.in)
+		actual := cfg.isMarkdown(test.in)
 		if actual != test.out {
 			t.Errorf("expected %v actual %v", test.out, actual)
 		}
@@ -100,8 +101,9 @@ func TestIsConvertable(t *testing.T) {
 		{"dude.dude", false},
 	}
 
+	cfg := config{}
 	for _, test := range tests {
-		actual := isConvertable(test.in)
+		actual := cfg.isConvertable(test.in)
 		if actual != test.out {
 			t.Errorf("expected %v actual %v", test.out, actual)
 		}
