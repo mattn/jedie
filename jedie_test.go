@@ -43,3 +43,44 @@ permalink: /foo/:categories/:month/:title.html
 		t.Fatalf("Unexpected cfg.Name: %s", cfg.Name)
 	}
 }
+
+func TestIsMarkdown(t *testing.T) {
+	tests := []struct {
+		in  string
+		out bool
+	}{
+		{"dude.md", true},
+		{"dude.mkd", true},
+		{"dude.markdown", true},
+		{"dude.dude", false},
+	}
+
+	cfg := config{}
+	for _, test := range tests {
+		actual := cfg.isMarkdown(test.in)
+		if actual != test.out {
+			t.Errorf("expected %v actual %v", test.out, actual)
+		}
+	}
+}
+
+func TestIsConvertable(t *testing.T) {
+	tests := []struct {
+		in  string
+		out bool
+	}{
+		{"dude.html", true},
+		{"dude.xml", true},
+		{"dude.md", true},
+		{"dude.markdown", true},
+		{"dude.dude", false},
+	}
+
+	cfg := config{}
+	for _, test := range tests {
+		actual := cfg.isConvertable(test.in)
+		if actual != test.out {
+			t.Errorf("expected %v actual %v", test.out, actual)
+		}
+	}
+}
