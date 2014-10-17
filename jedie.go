@@ -58,7 +58,7 @@ type page struct {
 }
 
 func (cfg *config) load(file string) error {
-	b, err := ioutil.ReadFile("_config.yml")
+	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
 	}
