@@ -30,6 +30,7 @@ type config struct {
 	Includes    string                       `yaml:"includes"`
 	Layouts     string                       `yaml:"layouts"`
 	Permalink   string                       `yaml:"permalink"`
+	Exclude     []string                     `yaml:"exclude"`
 	Host        string                       `yaml:"host"`
 	Port        int                          `yaml:"port"`
 	LimitPosts  int                          `yaml:limit_posts`
@@ -376,6 +377,11 @@ func (cfg *config) Build() error {
 				return filepath.SkipDir
 			}
 		} else {
+			for _, exclude := range cfg.Exclude {
+				if strings.HasSuffix(from, exclude) {
+					return err
+				}
+			}
 			if dot != '.' && dot != '_' {
 				vars := pongo2.Context{}
 				vars["path"] = from
