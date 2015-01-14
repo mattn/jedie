@@ -8,6 +8,7 @@ import (
 	"github.com/russross/blackfriday"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -185,4 +186,18 @@ func copyFile(src, dst string) (int64, error) {
 	}
 	defer df.Close()
 	return io.Copy(df, sf)
+}
+
+func urlJoin(l, r string) string {
+	r = path.Clean(r)
+	ls := strings.HasSuffix(l, "/")
+	rp := strings.HasPrefix(r, "/")
+
+	if ls && rp {
+		return l + r[1:]
+	}
+	if !ls && !rp {
+		return l + "/" + r
+	}
+	return l + r
 }

@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -139,7 +138,7 @@ func (cfg *config) load(file string) error {
 }
 
 func (cfg *config) toPageUrl(from string) string {
-	return path.Join(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
+	return urlJoin(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
 }
 
 func (cfg *config) toDate(from string) time.Time {
@@ -183,10 +182,10 @@ func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
 			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
 			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			return path.Join(cfg.Baseurl, postUrl)
+			return urlJoin(cfg.Baseurl, postUrl)
 		}
 	}
-	return path.Join(cfg.Baseurl, name+".html")
+	return urlJoin(cfg.Baseurl, name+".html")
 }
 
 func (cfg *config) toPage(from string) string {
