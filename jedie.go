@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -498,6 +499,17 @@ func (cfg *config) Build() error {
 }
 
 func (cfg *config) Serve() error {
+	if cfg.Baseurl != "" {
+		if u, err := url.Parse(cfg.Baseurl); err == nil {
+			host := cfg.Host
+			if host == "" {
+				host = "localhost"
+			}
+			u.Host = fmt.Sprintf("%s:%d", host, cfg.Port)
+			cfg.Baseurl = u.String()
+		}
+	}
+
 	err := cfg.Build()
 	if err != nil {
 		return err
