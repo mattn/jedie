@@ -120,7 +120,7 @@ func createDirectories(path string) error {
 
 	for _, directory := range directories {
 		err := os.Mkdir(filepath.Join(path, directory), 0755)
-		if err != nil {
+		if err != nil && !os.IsExist(err) {
 			return err
 		}
 	}
