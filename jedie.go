@@ -249,7 +249,7 @@ func (cfg *config) convertFile(src, dst string) error {
 	}
 
 	for k, v := range cfg.Conversion {
-		if ext != "." +k {
+		if ext != "."+k {
 			continue
 		}
 		if v == nil {
