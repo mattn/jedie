@@ -445,8 +445,12 @@ func (cfg *config) Build() error {
 		posts = posts[:cfg.LimitPosts]
 	}
 
+	if cfg.Title == "" {
+		cfg.Title = cfg.Name
+	}
+
+	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Title
 	cfg.vars["site"].(pongo2.Context)["name"] = cfg.Name
-	cfg.vars["site"].(pongo2.Context)["title"] = cfg.Name
 	cfg.vars["site"].(pongo2.Context)["url"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["baseurl"] = cfg.Baseurl
 	cfg.vars["site"].(pongo2.Context)["time"] = time.Now()
