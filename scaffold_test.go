@@ -64,8 +64,8 @@ func TestGenerateScaffold(t *testing.T) {
 func TestGenerateScaffoldErr(t *testing.T) {
 	err := generateScaffold("")
 
-	if err == nil {
-		t.Errorf("expected generateScaffold to return nil")
+	if err != nil {
+		t.Errorf("expected generateScaffold to return nil", err)
 	}
 }
 
