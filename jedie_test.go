@@ -44,6 +44,41 @@ permalink: /foo/:categories/:month/:title.html
 	}
 }
 
+func TestLoadFailed(t *testing.T) {
+	dir := makeConfig(`
+name: Your New Jedie Site
+description: You love golang, I love golang
+permalink: /foo/:categories/:month/:title.html
+	`)
+	defer os.RemoveAll(dir)
+
+	cfg := config{}
+	err := cfg.load(filepath.Join(dir, "__config.yml"))
+	if err == nil {
+		t.Fatalf("Should be failed: %v", err)
+	}
+
+	if cfg.Name != "" {
+		t.Fatalf("Unexpected cfg.Name: %s", cfg.Name)
+	}
+}
+
+func TestNew(t *testing.T) {
+	dir := makeTmpDir()
+	defer os.RemoveAll(dir)
+
+	cfg := config{}
+	err := cfg.New(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(filepath.Join(dir, "_config.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestIsMarkdown(t *testing.T) {
 	tests := []struct {
 		in  string
