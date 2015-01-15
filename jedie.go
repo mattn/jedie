@@ -22,6 +22,7 @@ import (
 
 type config struct {
 	Baseurl     string                       `yaml:"baseurl"`
+	Title       string                       `yaml:"title"`
 	Source      string                       `yaml:"source"`
 	Name        string                       `yaml:"name"`
 	Destination string                       `yaml:"destination"`
