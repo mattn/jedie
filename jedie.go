@@ -606,7 +606,6 @@ func (cfg *config) parseFile(file string, vars pongo2.Context) (string, error) {
 		content = strings.Join(lines[n+2:], "\n")
 	} else if cfg.isMarkdown(file) {
 		vars["title"] = ""
-		vars["layout"] = "plain"
 		vars["date"] = ""
 	}
 	return content, nil
