@@ -361,6 +361,14 @@ func (cfg *config) New(p string) error {
 	return generateScaffold(p)
 }
 
+func (cfg *config) NewPost(p string) error {
+	if p == "" {
+		p = "new-post"
+	}
+	f := filepath.Join(cfg.Posts, time.Now().Format("2006-01-02-"+p+".md"))
+	return ioutil.WriteFile(f, []byte(newPost), 0644)
+}
+
 func (cfg *config) Build() error {
 	pongoSetup()
 
@@ -689,6 +697,12 @@ func main() {
 		err = cfg.load("_config.yml")
 		checkFatal(err)
 		err = cfg.Build()
+		checkFatal(err)
+	case flag.Arg(0) == "newpost":
+		p := flag.Arg(1)
+		err = cfg.load("_config.yml")
+		checkFatal(err)
+		err = cfg.NewPost(p)
 		checkFatal(err)
 	case flag.Arg(0) == "serve":
 		err = cfg.load("_config.yml")

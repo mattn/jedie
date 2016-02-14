@@ -68,6 +68,13 @@ Check out the [Jedie][jedie-gh] for more info.
 [jedie-gh]: https://github.com/mattn/jedie
 `)[1:]
 
+var newPost = (`
+---
+layout: post
+title:  "New Post"
+---
+
+`)[1:]
 var topPage = `
 ---
 layout: default
