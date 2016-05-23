@@ -7,6 +7,7 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/russross/blackfriday"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -171,6 +172,26 @@ func pongoSetup() {
 			}
 		}
 		panic("unreachable")
+	})
+	pongo2.RegisterFilter("prepend", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		input := strings.Replace(in.String(), "\n", "", -1)
+		if input == "" {
+			return pongo2.AsValue(""), nil
+		}
+		u, e := url.Parse(input)
+		if e == nil && u.Host != "" {
+			return pongo2.AsValue(input), nil
+		}
+		base := param.String()
+		b, e := url.Parse(base)
+		if err != nil {
+			return nil, &pongo2.Error{
+				Sender:   "prepend",
+				ErrorMsg: fmt.Sprintf("Cannot prepend string ('%v').", param),
+			}
+		}
+		b.Path = input
+		return pongo2.AsValue(b.String()), nil
 	})
 }
 
