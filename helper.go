@@ -170,7 +170,6 @@ func pongoSetup() {
 				ErrorMsg: fmt.Sprintf("Cannot join variable of type %T ('%v').", in, in),
 			}
 		}
-		panic("unreachable")
 	})
 }
 

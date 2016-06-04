@@ -34,9 +34,9 @@ type config struct {
 	Exclude     []string                     `yaml:"exclude"`
 	Host        string                       `yaml:"host"`
 	Port        int                          `yaml:"port"`
-	LimitPosts  int                          `yaml:limit_posts`
-	MarkdownExt string                       `yaml:markdown_ext`
-	Conversion  map[string]map[string]string `yaml:conversion`
+	LimitPosts  int                          `yaml:"limit_posts"`
+	MarkdownExt string                       `yaml:"markdown_ext"`
+	Conversion  map[string]map[string]string `yaml:"conversion"`
 	vars        pongo2.Context
 }
 

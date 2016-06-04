@@ -25,7 +25,7 @@ func TestTemplate(t *testing.T) {
 
 	for _, test := range tests {
 		if strings.Contains(test.s, test.in) != test.out {
-			t.Errorf("expected %s in %s", test.in, test.out)
+			t.Errorf("expected %v in %v", test.in, test.out)
 		}
 	}
 }
@@ -65,7 +65,7 @@ func TestGenerateScaffoldErr(t *testing.T) {
 	err := generateScaffold("")
 
 	if err != nil {
-		t.Errorf("expected generateScaffold to return nil", err)
+		t.Errorf("expected generateScaffold to return nil: %v", err)
 	}
 }
 

@@ -35,7 +35,7 @@ func TestCopyFile(t *testing.T) {
 	copyFile(inFile.Name(), "muhaha")
 
 	if _, err := os.Stat("muhaha"); os.IsNotExist(err) {
-		t.Errorf("expected %s actual does not exist with error %v", inFile, err)
+		t.Errorf("expected %q actual does not exist with error %v", inFile.Name(), err)
 		os.Remove(inFile.Name())
 		return
 	}
