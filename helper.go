@@ -7,6 +7,7 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/russross/blackfriday"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -83,6 +84,16 @@ func pongoSetup() {
 			}
 		}
 		return pongo2.AsValue(date.Format("2006/01/02 15:04:05")), nil
+	})
+	pongo2.RegisterFilter("date_to_rfc822", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		date, ok := in.Interface().(time.Time)
+		if !ok {
+			return nil, &pongo2.Error{
+				Sender:   "date_to_rfc822",
+				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
+			}
+		}
+		return pongo2.AsValue(date.Format(time.RFC822)), nil
 	})
 	pongo2.ReplaceFilter("date", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
 		date, ok := in.Interface().(time.Time)
@@ -170,6 +181,26 @@ func pongoSetup() {
 				ErrorMsg: fmt.Sprintf("Cannot join variable of type %T ('%v').", in, in),
 			}
 		}
+	})
+	pongo2.RegisterFilter("prepend", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		input := strings.Replace(in.String(), "\n", "", -1)
+		if input == "" {
+			return pongo2.AsValue(""), nil
+		}
+		u, e := url.Parse(input)
+		if e == nil && u.Host != "" {
+			return pongo2.AsValue(input), nil
+		}
+		base := param.String()
+		b, e := url.Parse(base)
+		if err != nil {
+			return nil, &pongo2.Error{
+				Sender:   "prepend",
+				ErrorMsg: fmt.Sprintf("Cannot prepend string ('%v').", param),
+			}
+		}
+		b.Path = input
+		return pongo2.AsValue(b.String()), nil
 	})
 }
 
