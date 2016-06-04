@@ -40,6 +40,7 @@ type config struct {
 	vars        pongo2.Context
 }
 
+// Posts holds the information about context of post.
 type Posts []pongo2.Context
 
 func (p Posts) Len() int {
