@@ -168,13 +168,13 @@ func pongoSetup() {
 			if l < limit {
 				limit = l
 			}
-			return in.Slice(0, l), nil
+			return in.Slice(0, limit), nil
 		case in.IsString():
 			l := in.Len()
 			if l < limit {
 				limit = l
 			}
-			return pongo2.AsValue(in.String()[:l]), nil
+			return pongo2.AsValue(in.String()[:limit]), nil
 		default:
 			return nil, &pongo2.Error{
 				Sender:   "limit",
@@ -193,7 +193,7 @@ func pongoSetup() {
 		}
 		base := param.String()
 		b, e := url.Parse(base)
-		if err != nil {
+		if e != nil {
 			return nil, &pongo2.Error{
 				Sender:   "prepend",
 				ErrorMsg: fmt.Sprintf("Cannot prepend string ('%v').", param),

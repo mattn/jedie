@@ -346,7 +346,6 @@ func (cfg *config) convertFile(src, dst string) error {
 			break
 		}
 		src = filepath.ToSlash(filepath.Join(cfg.Layouts, str(vars["layout"])+".html"))
-		ext = filepath.Ext(src)
 		content = str(vars["content"])
 		vars["content"] = content
 		vars["post"].(pongo2.Context)["content"] = content
