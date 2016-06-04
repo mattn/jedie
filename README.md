@@ -1,9 +1,12 @@
 # Jedie
 
+[![GoDoc](https://godoc.org/github.com/mattn/jedie?status.svg)](https://godoc.org/github.com/mattn/jedie)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mattn/jedie)](https://goreportcard.com/report/github.com/mattn/jedie)
+
          __       ___    
-     __ / /__ ___/ (_)__ 
+     __ / /__ ___/ (_)__
     / // / -_) _  / / -_)
-    L___/`__/`_,_/_/`__/ 
+    L___/`__/`_,_/_/`__/
 
 jedie - static site generator, jekyll replacement, in golang.
 
