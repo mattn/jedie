@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/flosch/pongo2"
-	"github.com/russross/blackfriday"
 	"io"
 	"net/url"
 	"os"
@@ -14,6 +12,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/flosch/pongo2"
+	"github.com/russross/blackfriday"
 )
 
 var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |

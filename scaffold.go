@@ -107,7 +107,7 @@ layout: nil
     <item>
       <title>{{ post.title | xml_escape }}</title>
       <link>{{ site.baseurl | xml_escape }}{{ post.url | xml_escape }}</link>
-      <guid isPermaLink="false">tag:vim-jp.org,{{ post.date | date:"%Y/%M/%d" }}:{{ post.url | xml_escape }},rev:1</guid>
+      <guid isPermaLink="false">tag:vim-jp.org,{{ post.date | date:"%Y/%m/%d" }}:{{ post.url | xml_escape }},rev:1</guid>
       <pubDate>{{ post.date | date:"%a, %d %b %Y %H:%M:%S +0900" }}</pubDate>
       <author>vim-jp</author>
       <description>{{ post.content | xml_escape }}</description>

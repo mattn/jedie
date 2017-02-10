@@ -3,10 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/flosch/pongo2"
-	"github.com/howeyc/fsnotify"
-	"github.com/russross/blackfriday"
-	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +14,11 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/flosch/pongo2"
+	"github.com/howeyc/fsnotify"
+	"github.com/russross/blackfriday"
+	"gopkg.in/yaml.v1"
 )
 
 type config struct {
@@ -508,6 +509,36 @@ func (cfg *config) Build() error {
 		err = cfg.convertFile(from, to)
 		checkFatal(err)
 	}
+
+	sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{% for post in site.posts | limit:25 %}
+<url>
+<loc>{{ site.baseurl | xml_escape }}{{ post.url | xml_escape }}</loc>
+<lastmod>{{ post.date | date:"%Y-%m-%dT%H:%M:%S%z" }}</lastmod>
+</url>
+{% endfor %}
+{% for post in site.pages | limit:25 %}
+<url>
+<loc>{{ site.baseurl | xml_escape }}{{ page.url | xml_escape }}</loc>
+<lastmod>{{ page.date | date:"%Y-%m-%dT%H:%M:%S%z" }}</lastmod>
+<url>
+</url>
+{% endfor %}
+</urlset>
+`
+
+	to := filepath.Join(cfg.Destination, "sitemap.xml")
+	fmt.Println(to)
+	tpl, err := pongo2.FromString(sitemap)
+	checkFatal(err)
+	newvars := pongo2.Context{}
+	newvars.Update(cfg.vars)
+	output, err := tpl.Execute(newvars)
+	checkFatal(err)
+	err = ioutil.WriteFile(to, []byte(output), 0644)
+	checkFatal(err)
+
 	return nil
 }
 
