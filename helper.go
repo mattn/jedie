@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/flosch/pongo2"
+	"github.com/lestrrat/go-strftime"
 	"github.com/russross/blackfriday"
 )
 
@@ -104,62 +105,14 @@ func pongoSetup() {
 				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
 			}
 		}
-		format := param.String()
-
-		replacements := []struct {
-			from string
-			to   string
-		}{
-			{"%a", "Mon"},
-			{"%A", "Monday"},
-			{"%b", "Jan"},
-			{"%B", "January"},
-			{"%c", time.RFC3339},
-			{"%C", "06"},
-			{"%d", "02"},
-			{"%C", "01/02/06"},
-			{"%e", "_1/_2/_6"},
-			// {"%E", ""},
-			{"%F", "06-01-02"},
-			// {"%G", ""},
-			// {"%g", ""},
-			{"%h", "Jan"},
-			{"%H", "15"},
-			{"%I", "03"},
-			// {"%j", ""},
-			{"%k", "3"},
-			{"%l", "_3"},
-			{"%m", "01"},
-			{"%M", "04"},
-			{"%n", "\n"},
-			// {"%O", ""},
-			{"%p", "PM"},
-			{"%P", "pm"},
-			{"%r", "03:04:05 PM"},
-			{"%R", "03:04"},
-			// {"%s", ""},
-			{"%S", "05"},
-			{"%t", "\t"},
-			{"%T", "15:04:05"},
-			// {"%u", ""},
-			// {"%U", ""},
-			// {"%V", ""},
-			// {"%W", ""},
-			// {"%x", ""},
-			// {"%X", ""},
-			{"%y", "06"},
-			{"%Y", "2006"},
-			{"%z", "-0700"},
-			{"%Z", "MST"},
-			// {"%+", ""},
-			{"%%", "%"},
+		s, ferr := strftime.Format(param.String(), date)
+		if ferr != nil {
+			return nil, &pongo2.Error{
+				Sender:   "date",
+				ErrorMsg: fmt.Sprintf("Cannot format date ('%v').", param),
+			}
 		}
-
-		for _, replacement := range replacements {
-			format = strings.Replace(format, replacement.from, replacement.to, -1)
-		}
-
-		return pongo2.AsValue(date.Format(format)), nil
+		return pongo2.AsValue(s), nil
 	})
 	pongo2.RegisterFilter("limit", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
 		limit := param.Integer()
