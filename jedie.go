@@ -518,13 +518,6 @@ func (cfg *config) Build() error {
 <lastmod>{{ post.date | date:"%Y-%m-%dT%H:%M:%S%z" }}</lastmod>
 </url>
 {% endfor %}
-{% for post in site.pages | limit:25 %}
-<url>
-<loc>{{ site.baseurl | xml_escape }}{{ page.url | xml_escape }}</loc>
-<lastmod>{{ page.date | date:"%Y-%m-%dT%H:%M:%S%z" }}</lastmod>
-<url>
-</url>
-{% endfor %}
 </urlset>
 `
 
