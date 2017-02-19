@@ -514,7 +514,7 @@ func (cfg *config) Build() error {
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {% for post in site.posts | limit:25 %}
 <url>
-<loc>{{ site.baseurl | xml_escape }}{{ post.url | xml_escape }}</loc>
+<loc>{{ post.url | xml_escape }}</loc>
 <lastmod>{{ post.date | date:"%Y-%m-%dT%H:%M:%S%z" }}</lastmod>
 </url>
 {% endfor %}
