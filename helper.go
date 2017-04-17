@@ -81,8 +81,8 @@ func pongoSetup() {
 		date, ok := in.Interface().(time.Time)
 		if !ok {
 			return nil, &pongo2.Error{
-				Sender:   "date_to_string",
-				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
+				Sender:    "date_to_string",
+				OrigError: fmt.Errorf("Date must be of type time.Time not %T ('%v')", in, in),
 			}
 		}
 		return pongo2.AsValue(date.Format("2006/01/02 15:04:05")), nil
@@ -91,8 +91,8 @@ func pongoSetup() {
 		date, ok := in.Interface().(time.Time)
 		if !ok {
 			return nil, &pongo2.Error{
-				Sender:   "date_to_rfc822",
-				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
+				Sender:    "date_to_rfc822",
+				OrigError: fmt.Errorf("Date must be of type time.Time not %T ('%v')", in, in),
 			}
 		}
 		return pongo2.AsValue(date.Format(time.RFC822)), nil
@@ -101,15 +101,15 @@ func pongoSetup() {
 		date, ok := in.Interface().(time.Time)
 		if !ok {
 			return nil, &pongo2.Error{
-				Sender:   "date",
-				ErrorMsg: fmt.Sprintf("Date must be of type time.Time not %T ('%v')", in, in),
+				Sender:    "date",
+				OrigError: fmt.Errorf("Date must be of type time.Time not %T ('%v')", in, in),
 			}
 		}
 		s, ferr := strftime.Format(param.String(), date)
 		if ferr != nil {
 			return nil, &pongo2.Error{
-				Sender:   "date",
-				ErrorMsg: fmt.Sprintf("Cannot format date ('%v').", param),
+				Sender:    "date",
+				OrigError: fmt.Errorf("Cannot format date ('%v').", param),
 			}
 		}
 		return pongo2.AsValue(s), nil
@@ -131,8 +131,8 @@ func pongoSetup() {
 			return pongo2.AsValue(in.String()[:limit]), nil
 		default:
 			return nil, &pongo2.Error{
-				Sender:   "limit",
-				ErrorMsg: fmt.Sprintf("Cannot join variable of type %T ('%v').", in, in),
+				Sender:    "limit",
+				OrigError: fmt.Errorf("Cannot join variable of type %T ('%v').", in, in),
 			}
 		}
 	})
@@ -149,8 +149,8 @@ func pongoSetup() {
 		b, e := url.Parse(base)
 		if e != nil {
 			return nil, &pongo2.Error{
-				Sender:   "prepend",
-				ErrorMsg: fmt.Sprintf("Cannot prepend string ('%v').", param),
+				Sender:    "prepend",
+				OrigError: fmt.Errorf("Cannot prepend string ('%v').", param),
 			}
 		}
 		b.Path = input
