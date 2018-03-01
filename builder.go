@@ -316,7 +316,11 @@ func (cfg *config) convertFile(src, dst string) error {
 		date := cfg.toDate(src)
 		pageUrl := cfg.toPostUrl(src, pageVars)
 		title := str(vars["title"])
-		if content != "" {
+		convertable := true
+		if v, ok := vars["convertable"].(bool); ok {
+			convertable = v
+		}
+		if convertable && content != "" {
 			tpl, err := pongo2.FromString(content)
 			if err == nil {
 				newvars := pongo2.Context{}
