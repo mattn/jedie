@@ -37,7 +37,7 @@ func include(cfg *config, vars pongo2.Context) func(*string) (string, error) {
 		inc := filepath.ToSlash(filepath.Join(cfg.Includes, *loc))
 		tpl, err := pongo2.FromFile(inc)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("%s: %v", inc, err)
 		}
 		newvars := pongo2.Context{}
 		newvars.Update(cfg.vars)

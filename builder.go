@@ -326,10 +326,10 @@ func (cfg *config) convertFile(src, dst string) error {
 				if err == nil && output != "" {
 					content = output
 				} else {
-					return err
+					return fmt.Errorf("%s: %v", src, err)
 				}
 			} else {
-				return err
+				return fmt.Errorf("%s: %v", src, err)
 			}
 		}
 		vars["post"] = pongo2.Context{
@@ -638,7 +638,7 @@ func (cfg *config) parseFile(file string, vars pongo2.Context) (string, error) {
 		}
 		err = yaml.Unmarshal(b, &vars)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("%s: %v", file, err)
 		}
 		content = strings.Join(lines[n+2:], "\n")
 	} else if cfg.isMarkdown(file) {
