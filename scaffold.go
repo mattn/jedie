@@ -90,7 +90,7 @@ title: Your New Jedie Site
 </div>
 `[1:]
 
-var rssXml = `
+var rssXML = `
 ---
 layout: nil
 ---
@@ -147,7 +147,7 @@ func createFiles(path string) error {
 		{"css", "site.css", cssSite},
 		{"_posts", time.Now().Format("2006-01-02-welcome-to-jedie.md"), postsBlog},
 		{"index.html", "", topPage},
-		{"rss.xml", "", rssXml},
+		{"rss.xml", "", rssXML},
 	}
 
 	for _, file := range files {

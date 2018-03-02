@@ -19,7 +19,7 @@ func TestTemplate(t *testing.T) {
 		{cssSite, "body", true},
 		{postsBlog, "layout: post", true},
 		{topPage, "title: Your New Jedie Site", true},
-		{rssXml, "<rss version", true},
+		{rssXML, "<rss version", true},
 		{configYml, "Your New Jedie Site", true},
 	}
 

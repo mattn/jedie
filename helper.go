@@ -116,7 +116,7 @@ func pongoSetup() {
 		if ferr != nil {
 			return nil, &pongo2.Error{
 				Sender:    "date",
-				OrigError: fmt.Errorf("Cannot format date ('%v').", param),
+				OrigError: fmt.Errorf("Cannot format date ('%v')", param),
 			}
 		}
 		return pongo2.AsValue(s), nil
@@ -139,7 +139,7 @@ func pongoSetup() {
 		default:
 			return nil, &pongo2.Error{
 				Sender:    "limit",
-				OrigError: fmt.Errorf("Cannot join variable of type %T ('%v').", in, in),
+				OrigError: fmt.Errorf("Cannot join variable of type %T ('%v')", in, in),
 			}
 		}
 	})
@@ -157,7 +157,7 @@ func pongoSetup() {
 		if e != nil {
 			return nil, &pongo2.Error{
 				Sender:    "prepend",
-				OrigError: fmt.Errorf("Cannot prepend string ('%v').", param),
+				OrigError: fmt.Errorf("Cannot prepend string ('%v')", param),
 			}
 		}
 		b.Path = input

@@ -148,7 +148,7 @@ func (cfg *config) load(file string) error {
 	return nil
 }
 
-func (cfg *config) toPageUrl(from string) string {
+func (cfg *config) toPageURL(from string) string {
 	return urlJoin(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
 }
 
@@ -174,7 +174,7 @@ func (cfg *config) toDate(from string, pageVars pongo2.Context) time.Time {
 	return date
 }
 
-func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
+func (cfg *config) toPostURL(from string, pageVars pongo2.Context) string {
 	if v, ok := pageVars["permalink"]; ok {
 		return filepath.ToSlash(filepath.Join(cfg.Baseurl, str(v)))
 	}
@@ -194,15 +194,15 @@ func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
 					title, _ = v.(string)
 				}
 			*/
-			postUrl := cfg.Permalink
-			postUrl = strings.Replace(postUrl, ":categories", category, -1)
-			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
-			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%02d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":title", title, -1)
-			return urlJoin(cfg.Baseurl, postUrl)
+			postURL := cfg.Permalink
+			postURL = strings.Replace(postURL, ":categories", category, -1)
+			postURL = strings.Replace(postURL, ":year", fmt.Sprintf("%d", date.Year()), -1)
+			postURL = strings.Replace(postURL, ":month", fmt.Sprintf("%02d", date.Month()), -1)
+			postURL = strings.Replace(postURL, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
+			postURL = strings.Replace(postURL, ":day", fmt.Sprintf("%02d", date.Day()), -1)
+			postURL = strings.Replace(postURL, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
+			postURL = strings.Replace(postURL, ":title", title, -1)
+			return urlJoin(cfg.Baseurl, postURL)
 		}
 	}
 	return urlJoin(cfg.Baseurl, name+".html")
@@ -236,18 +236,18 @@ func (cfg *config) toPost(from string, pageVars pongo2.Context) string {
 					title, _ = v.(string)
 				}
 			*/
-			postUrl := cfg.Permalink
-			postUrl = strings.Replace(postUrl, ":categories", category, -1)
-			postUrl = strings.Replace(postUrl, ":year", fmt.Sprintf("%d", date.Year()), -1)
-			postUrl = strings.Replace(postUrl, ":month", fmt.Sprintf("%02d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
-			postUrl = strings.Replace(postUrl, ":day", fmt.Sprintf("%02d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
-			postUrl = strings.Replace(postUrl, ":title", title, -1)
+			postURL := cfg.Permalink
+			postURL = strings.Replace(postURL, ":categories", category, -1)
+			postURL = strings.Replace(postURL, ":year", fmt.Sprintf("%d", date.Year()), -1)
+			postURL = strings.Replace(postURL, ":month", fmt.Sprintf("%02d", date.Month()), -1)
+			postURL = strings.Replace(postURL, ":i_month", fmt.Sprintf("%d", date.Month()), -1)
+			postURL = strings.Replace(postURL, ":day", fmt.Sprintf("%02d", date.Day()), -1)
+			postURL = strings.Replace(postURL, ":i_day", fmt.Sprintf("%d", date.Day()), -1)
+			postURL = strings.Replace(postURL, ":title", title, -1)
 			if cfg.Permalink[len(cfg.Permalink)-1:len(cfg.Permalink)] == "/" {
-				postUrl += "/index"
+				postURL += "/index"
 			}
-			return filepath.ToSlash(filepath.Clean(filepath.Join(cfg.Destination, postUrl)))
+			return filepath.ToSlash(filepath.Clean(filepath.Join(cfg.Destination, postURL)))
 		}
 	}
 	return filepath.ToSlash(filepath.Join(cfg.Destination, name))
@@ -330,7 +330,7 @@ func (cfg *config) convertFile(src, dst string) error {
 			vars[k] = v
 		}
 		date := cfg.toDate(src, vars)
-		pageUrl := cfg.toPostUrl(src, pageVars)
+		pageURL := cfg.toPostURL(src, pageVars)
 		title := str(vars["title"])
 		convertable := true
 		if v, ok := vars["convertable"].(bool); ok {
@@ -354,12 +354,12 @@ func (cfg *config) convertFile(src, dst string) error {
 		}
 		vars["post"] = pongo2.Context{
 			"date":  date,
-			"url":   pageUrl,
+			"url":   pageURL,
 			"title": title,
 		}
 		vars["page"] = pongo2.Context{
 			"date":  date,
-			"url":   pageUrl,
+			"url":   pageURL,
 			"title": title,
 		}
 
@@ -420,7 +420,7 @@ func (cfg *config) Build() error {
 			if dot != '.' && dot != '_' {
 				vars := pongo2.Context{}
 				vars["path"] = from
-				vars["url"] = cfg.toPageUrl(from)
+				vars["url"] = cfg.toPageURL(from)
 				vars["date"] = info.ModTime()
 				pages = append(pages, vars)
 			}
@@ -452,7 +452,7 @@ func (cfg *config) Build() error {
 			return err
 		}
 		vars["path"] = from
-		vars["url"] = cfg.toPostUrl(from, vars)
+		vars["url"] = cfg.toPostURL(from, vars)
 		vars["date"] = cfg.toDate(from, vars)
 		vars["content"] = content
 		if category, ok := vars["category"]; ok {
