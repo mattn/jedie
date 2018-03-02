@@ -198,12 +198,13 @@ func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
 }
 
 func (cfg *config) toPage(from string) string {
-	if cfg.Permalink != "" {
-	}
 	return filepath.ToSlash(filepath.Join(cfg.Destination, from[len(cfg.Source):]))
 }
 
 func (cfg *config) toPost(from string, pageVars pongo2.Context) string {
+	if v, ok := pageVars["permalink"]; ok {
+		return filepath.ToSlash(filepath.Join(cfg.Destination, str(v)))
+	}
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
 	name = name[0 : len(name)-len(ext)]
