@@ -150,7 +150,13 @@ func (cfg *config) toPageUrl(from string) string {
 	return urlJoin(cfg.Baseurl, filepath.ToSlash(from[len(cfg.Source):]))
 }
 
-func (cfg *config) toDate(from string) time.Time {
+func (cfg *config) toDate(from string, pageVars pongo2.Context) time.Time {
+	if v, ok := pageVars["date"]; ok {
+		date, err := time.Parse(`2006-01-02 15:04:05.999999999 -0700 MST`, str(v))
+		if err == nil {
+			return date
+		}
+	}
 	fi, err := os.Stat(from)
 	if err != nil {
 		return time.Now()
@@ -317,7 +323,7 @@ func (cfg *config) convertFile(src, dst string) error {
 		for k, v := range pageVars {
 			vars[k] = v
 		}
-		date := cfg.toDate(src)
+		date := cfg.toDate(src, vars)
 		pageUrl := cfg.toPostUrl(src, pageVars)
 		title := str(vars["title"])
 		convertable := true
@@ -441,7 +447,7 @@ func (cfg *config) Build() error {
 		}
 		vars["path"] = from
 		vars["url"] = cfg.toPostUrl(from, vars)
-		vars["date"] = cfg.toDate(from)
+		vars["date"] = cfg.toDate(from, vars)
 		vars["content"] = content
 		if category, ok := vars["category"]; ok {
 			cname := str(category)
