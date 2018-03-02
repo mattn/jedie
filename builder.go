@@ -167,6 +167,9 @@ func (cfg *config) toDate(from string) time.Time {
 }
 
 func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
+	if v, ok := pageVars["permalink"]; ok {
+		return filepath.ToSlash(filepath.Join(cfg.Baseurl, str(v)))
+	}
 	ext := filepath.Ext(from)
 	name := filepath.Base(from)
 	name = name[0 : len(name)-len(ext)]
