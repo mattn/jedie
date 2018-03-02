@@ -58,6 +58,11 @@ $ jedie serve
 
 ## Configuration
 
+```yaml
+name: Your New Jedie Site
+description: You love golang, I love golang
+```
+
 For example, you can do your specified conversion like below.
 
 ```yaml
