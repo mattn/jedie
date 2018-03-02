@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,6 +43,7 @@ type config struct {
 	Port        int                          `yaml:"port"`
 	LimitPosts  int                          `yaml:"limit_posts"`
 	MarkdownExt string                       `yaml:"markdown_ext"`
+	Paginate    int                          `yaml:"paginate"`
 	Conversion  map[string]map[string]string `yaml:"conversion"`
 	vars        pongo2.Context
 }
@@ -204,6 +206,10 @@ func (cfg *config) toPostUrl(from string, pageVars pongo2.Context) string {
 		}
 	}
 	return urlJoin(cfg.Baseurl, name+".html")
+}
+
+func (cfg *config) toPaginate(n int) string {
+	return filepath.ToSlash(filepath.Join(cfg.Destination, fmt.Sprintf("page%d", n), "index.html"))
 }
 
 func (cfg *config) toPage(from string) string {
@@ -513,20 +519,61 @@ func (cfg *config) Build() error {
 		checkFatal(err)
 	}
 
-	for _, page := range pages {
-		from := page["path"].(string)
-		to := cfg.toPage(from)
-		fmt.Println(from, "=>", to)
-		err = cfg.convertFile(from, to)
-		checkFatal(err)
-	}
-
 	for _, post := range posts {
 		from := post["path"].(string)
 		to := cfg.toPost(from, post)
 		fmt.Println(from, "=>", to)
 		err = cfg.convertFile(from, to)
 		checkFatal(err)
+	}
+
+	var index pongo2.Context
+	for _, page := range pages {
+		from := page["path"].(string)
+		to := cfg.toPage(from)
+		fmt.Println(from, "=>", to)
+		err = cfg.convertFile(from, to)
+		checkFatal(err)
+
+		if page["url"] == "/index.md" || page["url"] == "/index.html" {
+			index = page
+		}
+	}
+
+	if cfg.Paginate > 0 && index != nil {
+		cfg.vars["paginator"] = pongo2.Context{}
+		//cfg.vars["paginator"].(pongo2.Context)["total_pages"] = len(pages)
+		cfg.vars["paginator"].(pongo2.Context)["total_posts"] = len(posts)
+		cfg.vars["paginator"].(pongo2.Context)["per_page"] = cfg.Paginate
+		cfg.vars["paginator"].(pongo2.Context)["previous_page"] = nil
+		cfg.vars["paginator"].(pongo2.Context)["next_page"] = nil
+
+		from := index["path"].(string)
+		npages := int(math.Floor(float64(len(posts)) / float64(cfg.Paginate)))
+		for i := 0; i < npages; i++ {
+			if i < npages-1 {
+				cfg.vars["paginator"].(pongo2.Context)["next_page"] = true
+				cfg.vars["paginator"].(pongo2.Context)["next_page_path"] = fmt.Sprintf("/page%d/", i+1)
+			} else {
+				cfg.vars["paginator"].(pongo2.Context)["next_page"] = false
+			}
+			if i > 0 {
+				cfg.vars["paginator"].(pongo2.Context)["previous_page"] = true
+				cfg.vars["paginator"].(pongo2.Context)["previous_page_path"] = fmt.Sprintf("/page%d/", i+1)
+			} else {
+				cfg.vars["paginator"].(pongo2.Context)["previous_page"] = false
+			}
+			nni := cfg.Paginate * (i + 1)
+			if nni > len(posts) {
+				nni = len(posts)
+			}
+			cfg.vars["paginator"].(pongo2.Context)["posts"] = posts[cfg.Paginate*i : nni]
+
+			to := cfg.toPaginate(i)
+			fmt.Println(from, "=>", to)
+			err = cfg.convertFile(from, to)
+			checkFatal(err)
+		}
 	}
 
 	sitemap := `<?xml version="1.0" encoding="UTF-8"?>
