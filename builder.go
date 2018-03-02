@@ -527,6 +527,22 @@ func (cfg *config) Build() error {
 		checkFatal(err)
 	}
 
+	cfg.vars["paginator"] = pongo2.Context{}
+	if cfg.Paginate > 0 {
+		nni := cfg.Paginate
+		if nni > len(posts) {
+			nni = len(posts)
+		}
+		cfg.vars["paginator"].(pongo2.Context)["per_page"] = cfg.Paginate
+		cfg.vars["paginator"].(pongo2.Context)["total_pages"] = len(posts)
+		cfg.vars["paginator"].(pongo2.Context)["total_posts"] = len(posts)
+		cfg.vars["paginator"].(pongo2.Context)["posts"] = posts[:nni]
+		if len(posts) > cfg.Paginate {
+			cfg.vars["paginator"].(pongo2.Context)["next_page"] = true
+			cfg.vars["paginator"].(pongo2.Context)["next_page_path"] = "/page2/"
+		}
+	}
+
 	var index pongo2.Context
 	for _, page := range pages {
 		from := page["path"].(string)
@@ -541,10 +557,6 @@ func (cfg *config) Build() error {
 	}
 
 	if cfg.Paginate > 0 && index != nil {
-		cfg.vars["paginator"] = pongo2.Context{}
-		//cfg.vars["paginator"].(pongo2.Context)["total_pages"] = len(pages)
-		cfg.vars["paginator"].(pongo2.Context)["total_posts"] = len(posts)
-		cfg.vars["paginator"].(pongo2.Context)["per_page"] = cfg.Paginate
 		cfg.vars["paginator"].(pongo2.Context)["previous_page"] = nil
 		cfg.vars["paginator"].(pongo2.Context)["next_page"] = nil
 

@@ -71,6 +71,13 @@ func pongoSetup() {
 		}
 		return pongo2.AsValue(string(rs[:letters])), nil
 	})
+	pongo2.RegisterFilter("range", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
+		r := make([]int, param.Integer())
+		for i := 0; i < len(r); i++ {
+			r[i] = i + 1
+		}
+		return pongo2.AsValue(r), nil
+	})
 	pongo2.RegisterFilter("strip_html", func(in *pongo2.Value, param *pongo2.Value) (out *pongo2.Value, err *pongo2.Error) {
 		return pongo2.AsValue(regexp.MustCompile("<[^>]+>").ReplaceAllString(in.String(), "")), nil
 	})
