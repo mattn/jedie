@@ -14,8 +14,8 @@ jedie - static site generator, jekyll replacement, in golang.
 
 ### Requirements
 
-*   golang (of course!)
-*   git
+* golang (of course!)
+* git
 
 ### Install with `go get`
 
