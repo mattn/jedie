@@ -15,15 +15,15 @@ import (
 
 	"github.com/flosch/pongo2"
 	"github.com/lestrrat/go-strftime"
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 )
 
-var extensions = blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
-	blackfriday.EXTENSION_TABLES |
-	blackfriday.EXTENSION_FENCED_CODE |
-	blackfriday.EXTENSION_AUTOLINK |
-	blackfriday.EXTENSION_STRIKETHROUGH |
-	blackfriday.EXTENSION_SPACE_HEADERS
+var extensions = blackfriday.NoIntraEmphasis |
+	blackfriday.Tables |
+	blackfriday.FencedCode |
+	blackfriday.Autolink |
+	blackfriday.Strikethrough |
+	blackfriday.SpaceHeadings
 
 func str(s interface{}) string {
 	if ss, ok := s.(string); ok {

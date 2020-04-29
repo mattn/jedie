@@ -17,7 +17,7 @@ import (
 
 	"github.com/flosch/pongo2"
 	"github.com/howeyc/fsnotify"
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v1"
 )
 
@@ -364,8 +364,8 @@ func (cfg *config) convertFile(src, dst string) error {
 		}
 
 		if cfg.isMarkdown(src) {
-			renderer := blackfriday.HtmlRenderer(0, "", "")
-			vars["content"] = string(blackfriday.Markdown([]byte(content), renderer, extensions))
+			renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{})
+			vars["content"] = string(blackfriday.Run([]byte(content), blackfriday.WithExtensions(extensions), blackfriday.WithRenderer(renderer)))
 		} else {
 			vars["content"] = content
 		}
