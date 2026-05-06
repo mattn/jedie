@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/flosch/pongo2"
-	"github.com/howeyc/fsnotify"
+	"github.com/gofsnotify/fsnotify"
 	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v1"
 )
@@ -642,7 +642,7 @@ func (cfg *config) Serve() error {
 			if filepath.HasPrefix(name, ".") || filepath.HasPrefix(name, "_") {
 				return filepath.SkipDir
 			}
-			err = watcher.WatchFlags(name, fsnotify.FSN_ALL)
+			err = watcher.Add(name, fsnotify.All)
 			if err != nil {
 				return err
 			}
@@ -654,7 +654,7 @@ func (cfg *config) Serve() error {
 		fired := false
 		for {
 			select {
-			case e := <-watcher.Event:
+			case e := <-watcher.Events:
 				from := filepath.ToSlash(e.Name)
 				if filepath.HasPrefix(from, cfg.Destination) {
 					continue
@@ -685,7 +685,7 @@ func (cfg *config) Serve() error {
 						}(from, to)
 					}
 				}
-			case err := <-watcher.Error:
+			case err := <-watcher.Errors:
 				log.Println("Error:", err)
 			}
 		}
