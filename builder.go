@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/flosch/pongo2"
-	"github.com/gofsnotify/fsnotify"
+	"github.com/fswatcher/fswatcher"
 	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v1"
 )
@@ -630,7 +630,7 @@ func (cfg *config) Serve() error {
 		return err
 	}
 
-	watcher, err := fsnotify.NewWatcher()
+	watcher, err := fswatcher.NewWatcher()
 	if err != nil {
 		return err
 	}
@@ -642,7 +642,7 @@ func (cfg *config) Serve() error {
 			if filepath.HasPrefix(name, ".") || filepath.HasPrefix(name, "_") {
 				return filepath.SkipDir
 			}
-			err = watcher.Add(name, fsnotify.All)
+			err = watcher.Add(name, fswatcher.All)
 			if err != nil {
 				return err
 			}
